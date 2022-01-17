@@ -1,12 +1,10 @@
-package berlin.tu.csb;
+package berlin.tu.csb.model;
 
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.RandomUtils;
+import berlin.tu.csb.controller.SeededRandomHelper;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.UUID;
 
 public class OrderLine {
@@ -25,9 +23,9 @@ public class OrderLine {
         ol_id = UUID.randomUUID().toString();
         o_id = fk_o_id;
         i_id = fk_i_id;
-        ol_qty = RandomUtils.nextInt(1, 100);
-        ol_discount = RandomUtils.nextFloat(0, 100);
-        ol_status = RandomStringUtils.randomAlphabetic(2, 16);
+        ol_qty = SeededRandomHelper.getIntBetween(1, 100);
+        ol_discount = SeededRandomHelper.getFloatBetween(0, 100);
+        ol_status = SeededRandomHelper.getStringWithLength(2, 16);
         return this;
     }
 

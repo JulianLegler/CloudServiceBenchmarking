@@ -1,7 +1,6 @@
-package berlin.tu.csb;
+package berlin.tu.csb.model;
 
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.RandomUtils;
+import berlin.tu.csb.controller.SeededRandomHelper;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -27,15 +26,15 @@ public class Item {
 
     public Item setRandomValues() {
         i_id = UUID.randomUUID().toString();
-        i_title = RandomStringUtils.randomAlphanumeric(5, 60);
-        i_pub_date = new Timestamp(RandomUtils.nextLong(1, System.currentTimeMillis())); //LocalDateTime.of(RandomUtils.nextInt(1900, 2022), RandomUtils.nextInt(1, 12), RandomUtils.nextInt(1, 30), 0, 0, 0);
-        i_publisher = RandomStringUtils.randomAlphanumeric(5, 60);
-        i_subject = RandomStringUtils.randomAlphanumeric(5, 60);
-        i_desc = RandomStringUtils.randomAlphanumeric(60, 500);
-        i_srp = RandomUtils.nextFloat(5f, 120f);
-        i_cost = i_srp*RandomUtils.nextFloat(0.5f, 1f);
-        i_isbn = RandomStringUtils.randomAlphanumeric(13);
-        i_page = RandomUtils.nextInt(10, 1800);
+        i_title = SeededRandomHelper.getStringWithLength(5, 60);
+        i_pub_date = new Timestamp(SeededRandomHelper.getLongBetween(1, System.currentTimeMillis())); //LocalDateTime.of(RandomUtils.nextInt(1900, 2022), RandomUtils.nextInt(1, 12), RandomUtils.nextInt(1, 30), 0, 0, 0);
+        i_publisher = SeededRandomHelper.getStringWithLength(5, 60);
+        i_subject = SeededRandomHelper.getStringWithLength(5, 60);
+        i_desc = SeededRandomHelper.getStringWithLength(60, 500);
+        i_srp = SeededRandomHelper.getFloatBetween(5, 120);
+        i_cost = i_srp*SeededRandomHelper.getFloatBetween(0.5f, 1);
+        i_isbn = SeededRandomHelper.getStringWithLength(12, 13);
+        i_page = SeededRandomHelper.getIntBetween(10, 1800);
         return this;
     }
 

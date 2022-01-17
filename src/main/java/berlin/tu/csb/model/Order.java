@@ -1,7 +1,7 @@
-package berlin.tu.csb;
+package berlin.tu.csb.model;
 
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.RandomUtils;
+
+import berlin.tu.csb.controller.SeededRandomHelper;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -9,7 +9,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.UUID;
 
-public class Orders {
+public class Order {
     public String o_id;
     public String c_id;
     public Timestamp o_date;
@@ -21,21 +21,21 @@ public class Orders {
     public String o_ship_addr;
     public String o_status;
 
-    public Orders() {
+    public Order() {
 
     }
 
-    public Orders setRandomValues(String fk_c_id) {
+    public Order setRandomValues(String fk_c_id) {
         o_id = UUID.randomUUID().toString();
         c_id = fk_c_id;
-        o_date = new Timestamp(RandomUtils.nextLong(1577833200000L, 1641141846417L)); //2020 - now
-        o_sub_total = RandomUtils.nextFloat(5f, 12000f);
+        o_date = new Timestamp(SeededRandomHelper.getLongBetween(1577833200000L, 1641141846417L)); //2020 - now
+        o_sub_total = SeededRandomHelper.getFloatBetween(5f, 12000f);
         o_tax = o_sub_total*0.19f;
         o_total = o_sub_total+o_tax;
-        o_ship_type = RandomStringUtils.randomAlphanumeric(3, 10);
-        o_ship_date = new Timestamp(o_date.getTime() + RandomUtils.nextLong(172800000L, 432000000L)); // 1-5 days after order
-        o_ship_addr = RandomStringUtils.randomAlphanumeric(25, 100);
-        o_status = RandomStringUtils.randomAlphanumeric(2, 16);
+        o_ship_type = SeededRandomHelper.getStringWithLength(3, 10);
+        o_ship_date = new Timestamp(o_date.getTime() + SeededRandomHelper.getLongBetween(172800000L, 432000000L)); // 1-5 days after order
+        o_ship_addr = SeededRandomHelper.getStringWithLength(25, 100);
+        o_status = SeededRandomHelper.getStringWithLength(2, 16);
         return this;
     }
 

@@ -1,7 +1,6 @@
-package berlin.tu.csb;
+package berlin.tu.csb.model;
 
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.RandomUtils;
+import berlin.tu.csb.controller.SeededRandomHelper;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -23,22 +22,21 @@ public class Customer {
     public float c_discount;
 
     public Customer() {
-
     }
 
     public Customer setRandomCustomerValues() {
         c_id = UUID.randomUUID().toString();
-        c_business_name = RandomStringUtils.randomAlphanumeric(5, 20);
-        c_business_info = RandomStringUtils.randomAlphanumeric(20, 100);
-        c_passwd = RandomStringUtils.randomAlphanumeric(5, 20);
-        c_contact_fname = RandomStringUtils.randomAlphanumeric(5, 15);
-        c_contact_lname = RandomStringUtils.randomAlphanumeric(5, 15);
-        c_addr = RandomStringUtils.randomAlphanumeric(30, 100);
-        c_contact_phone = RandomStringUtils.randomNumeric(8, 16);
-        c_contact_email = RandomStringUtils.randomAlphanumeric(7, 35);
-        c_payment_method = RandomStringUtils.randomAlphanumeric(2);
-        c_credit_info = RandomStringUtils.randomAlphanumeric(20,300);
-        c_discount = RandomUtils.nextFloat(0f, 35f);
+        c_business_name = SeededRandomHelper.getStringWithLength(5, 20);
+        c_business_info = SeededRandomHelper.getStringWithLength(20, 100);
+        c_passwd = SeededRandomHelper.getStringWithLength(5, 20);
+        c_contact_fname = SeededRandomHelper.getStringWithLength(5, 15);
+        c_contact_lname = SeededRandomHelper.getStringWithLength(5, 15);
+        c_addr = SeededRandomHelper.getStringWithLength(30, 100);
+        c_contact_phone = String.valueOf(SeededRandomHelper.getLongBetween(8, 16));
+        c_contact_email = SeededRandomHelper.getStringWithLength(7, 35);
+        c_payment_method = SeededRandomHelper.getStringWithLength(1, 2);
+        c_credit_info = SeededRandomHelper.getStringWithLength(20,300);
+        c_discount = SeededRandomHelper.getFloatBetween(0, 35);
         return this;
     }
 

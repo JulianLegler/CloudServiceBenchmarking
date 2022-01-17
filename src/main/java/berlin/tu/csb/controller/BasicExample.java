@@ -1,10 +1,14 @@
-package berlin.tu.csb;
+package berlin.tu.csb.controller;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
+import berlin.tu.csb.model.Customer;
+import berlin.tu.csb.model.Item;
+import berlin.tu.csb.model.Order;
+import berlin.tu.csb.model.OrderLine;
 import org.apache.commons.lang3.RandomUtils;
 import org.postgresql.ds.PGSimpleDataSource;
 
@@ -27,7 +31,6 @@ public class BasicExample {
             e.printStackTrace();
             System.exit(1);
         }
-
 
         String[] serverAddresses = content.split(",");
 
@@ -63,6 +66,7 @@ public class BasicExample {
         // necessary in production code.
         dao.testRetryHandling();
 
+        dao.truncateAllTables();
 
         int totalRowsInserted = dao.bulkInsertRandomCustomerData(500);
         System.out.printf("\nBenchmarkDAO. bulkInsertRandomCustomerData:\n    => finished, %s total rows inserted\n", totalRowsInserted);
@@ -91,24 +95,24 @@ public class BasicExample {
         System.out.printf("\nBenchmarkDAO. bulkInsertRandomOrders:\n    => finished, %s total rows inserted\n", totalRowsInserted);
 
         // Print out 10 account values.
-        List<Orders> randomOrders = dao2.getRandomOrders(10);
+        List<Order> randomOrders = dao2.getRandomOrders(10);
 
-        for (Orders orders: randomOrders) {
-            System.out.println(orders);
+        for (Order order : randomOrders) {
+            System.out.println(order);
         }
 
         // Print out 10 account values.
         Customer customer = randomCustomers.get(RandomUtils.nextInt(0, randomCustomers.size()));
-        List<Orders> ordersForCustomer = dao2.getOrdersFromCustomer(customer.c_id);
+        List<Order> orderForCustomer = dao2.getOrdersFromCustomer(customer.c_id);
         System.out.println("All Orders for customer " + customer.c_id);
-        for (Orders orders: ordersForCustomer) {
-            System.out.println(orders);
+        for (Order order : orderForCustomer) {
+            System.out.println(order);
         }
 
         totalRowsInserted = dao.bulkInsertRandomOrderLine(500, randomOrders, randomItems);
         System.out.printf("\nBenchmarkDAO. bulkInsertRandomOrderLine:\n    => finished, %s total rows inserted\n", totalRowsInserted);
 
-        Orders order = randomOrders.get(RandomUtils.nextInt(0, randomOrders.size()));
+        Order order = randomOrders.get(RandomUtils.nextInt(0, randomOrders.size()));
         List<OrderLine> orderLinesForOrder = dao2.getOrderLinesFromOrder(order.o_id);
         System.out.println("All OrderLines for order " + order.o_id);
         for (OrderLine orderLine: orderLinesForOrder) {

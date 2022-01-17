@@ -1,5 +1,9 @@
-package berlin.tu.csb;
+package berlin.tu.csb.controller;
 
+import berlin.tu.csb.model.Customer;
+import berlin.tu.csb.model.Item;
+import berlin.tu.csb.model.Order;
+import berlin.tu.csb.model.OrderLine;
 import org.apache.commons.lang3.RandomUtils;
 
 import javax.sql.DataSource;
@@ -362,6 +366,38 @@ class BenchmarkDAO {
         return customerRandom;
     }
 
+    public boolean insertCustomerIntoDB(Customer customer) {
+        try (Connection connection = ds.getConnection()) {
+
+            // We're managing the commit lifecycle ourselves so we can
+            // control the size of our batch inserts.
+            connection.setAutoCommit(false);
+
+            // In this example we are adding 500 rows to the database,
+            // but it could be any number.  What's important is that
+            // the batch size is 128.
+            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO customer (c_id, c_business_name, c_business_info, c_passwd, c_contact_fname, c_contact_lname, c_addr, c_contact_phone, c_contact_email, c_payment_method, c_credit_info, c_discount) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)")) {
+
+                customer.fillStatement(pstmt);
+                sqlLog.add(pstmt.toString());
+
+                pstmt.execute();
+                connection.commit();
+                pstmt.close();
+                connection.close();
+            } catch (SQLException e) {
+                System.out.printf("BenchmarkDAO.insertRandomCustomer ERROR: { state => %s, cause => %s, message => %s }\n",
+                        e.getSQLState(), e.getCause(), e.getMessage());
+                return false;
+            }
+        } catch (SQLException e) {
+            System.out.printf("BenchmarkDAO.insertRandomCustomer ERROR: { state => %s, cause => %s, message => %s }\n",
+                    e.getSQLState(), e.getCause(), e.getMessage());
+            return false;
+        }
+        return true;
+    }
+
     public List<Customer> getRandomCustomers(int limit) {
         ArrayList<Customer> randomCustomers = new ArrayList<Customer>();
         try (Connection connection = ds.getConnection()) {
@@ -400,6 +436,38 @@ class BenchmarkDAO {
         return randomCustomers;
     }
 
+
+    public boolean insertItemIntoDB(Item item) {
+        try (Connection connection = ds.getConnection()) {
+
+            // We're managing the commit lifecycle ourselves so we can
+            // control the size of our batch inserts.
+            connection.setAutoCommit(false);
+
+            // In this example we are adding 500 rows to the database,
+            // but it could be any number.  What's important is that
+            // the batch size is 128.
+            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO item (i_id, i_title, i_pub_date, i_publisher, i_subject, i_desc, i_srp, i_cost, i_isbn, i_page) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
+
+                item.fillStatement(pstmt);
+                sqlLog.add(pstmt.toString());
+
+                pstmt.execute();
+                connection.commit();
+                pstmt.close();
+                connection.close();
+            } catch (SQLException e) {
+                System.out.printf("BenchmarkDAO.insertItem ERROR: { state => %s, cause => %s, message => %s }\n",
+                        e.getSQLState(), e.getCause(), e.getMessage());
+                return false;
+            }
+        } catch (SQLException e) {
+            System.out.printf("BenchmarkDAO.insertItem ERROR: { state => %s, cause => %s, message => %s }\n",
+                    e.getSQLState(), e.getCause(), e.getMessage());
+            return false;
+        }
+        return true;
+    }
 
     public int bulkInsertRandomItemData(int amount) {
 
@@ -481,6 +549,43 @@ class BenchmarkDAO {
         return randomItems;
     }
 
+    public Item getItemFromDB(Item item) {
+        Item itemFromDB = null;
+        try (Connection connection = ds.getConnection()) {
+
+            try {
+                Statement statement = connection.createStatement();
+                String sqlStatement = String.format("SELECT * FROM item WHERE i_id = '%s'", item.i_id);
+                sqlLog.add(sqlStatement);
+                ResultSet rs = statement.executeQuery(sqlStatement);
+
+                while (rs.next()) {
+
+                    itemFromDB = new Item();
+                    itemFromDB.initWithResultSet(rs);
+
+                }
+
+                rs.close();
+
+                statement.close();
+
+                connection.close();
+
+            } catch (Exception e) {
+
+                System.err.println(e.getClass().getName() + ": " + e.getMessage());
+
+                System.exit(0);
+
+            }
+        } catch (SQLException e) {
+            System.out.printf("BenchmarkDAO.getRandomCostumers ERROR: { state => %s, cause => %s, message => %s }\n",
+                    e.getSQLState(), e.getCause(), e.getMessage());
+        }
+        return itemFromDB;
+    }
+
 
     public int bulkInsertRandomOrders(int amount, List<Customer> customerList) {
 
@@ -496,11 +601,11 @@ class BenchmarkDAO {
             // In this example we are adding 500 rows to the database,
             // but it could be any number.  What's important is that
             // the batch size is 128.
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO orders (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
+            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO order (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
                 for (int i = 0; i <= (amount / BATCH_SIZE); i++) {
                     for (int j = 0; j < BATCH_SIZE; j++) {
-                        Orders ordersRandom = new Orders().setRandomValues(customerList.get(RandomUtils.nextInt(0, customerList.size())).c_id);
-                        ordersRandom.fillStatement(pstmt);
+                        Order orderRandom = new Order().setRandomValues(customerList.get(RandomUtils.nextInt(0, customerList.size())).c_id);
+                        orderRandom.fillStatement(pstmt);
                         //System.out.println(pstmt);
                         sqlLog.add(pstmt.toString());
                         pstmt.addBatch();
@@ -524,8 +629,8 @@ class BenchmarkDAO {
         return totalNewAccounts;
     }
 
-    public Orders insertRandomOrder(Customer customer) {
-        Orders ordersRandom = null;
+    public Order insertRandomOrder(Customer customer) {
+        Order orderRandom = null;
 
         try (Connection connection = ds.getConnection()) {
 
@@ -533,9 +638,9 @@ class BenchmarkDAO {
             // control the size of our batch inserts.
             connection.setAutoCommit(false);
 
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO orders (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
-                ordersRandom = new Orders().setRandomValues(customer.c_id);
-                ordersRandom.fillStatement(pstmt);
+            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO order (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
+                orderRandom = new Order().setRandomValues(customer.c_id);
+                orderRandom.fillStatement(pstmt);
                 sqlLog.add(pstmt.toString());
 
                 pstmt.execute();
@@ -550,22 +655,50 @@ class BenchmarkDAO {
             System.out.printf("BenchmarkDAO.bulkInsertRandomOrders ERROR: { state => %s, cause => %s, message => %s }\n",
                     e.getSQLState(), e.getCause(), e.getMessage());
         }
-        return ordersRandom;
+        return orderRandom;
     }
 
-    public List<Orders> getRandomOrders(int limit) {
-        ArrayList<Orders> randomOrders = new ArrayList<Orders>();
+    public boolean insertOrderIntoDB(Order order) {
+        try (Connection connection = ds.getConnection()) {
+
+            // We're managing the commit lifecycle ourselves so we can
+            // control the size of our batch inserts.
+            connection.setAutoCommit(false);
+
+            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO order (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
+                order.fillStatement(pstmt);
+                sqlLog.add(pstmt.toString());
+
+                pstmt.execute();
+                connection.commit();
+                pstmt.close();
+                connection.close();
+            } catch (SQLException e) {
+                System.out.printf("BenchmarkDAO.insertOrder ERROR: { state => %s, cause => %s, message => %s }\n",
+                        e.getSQLState(), e.getCause(), e.getMessage());
+                return false;
+            }
+        } catch (SQLException e) {
+            System.out.printf("BenchmarkDAO.insertOrder ERROR: { state => %s, cause => %s, message => %s }\n",
+                    e.getSQLState(), e.getCause(), e.getMessage());
+            return false;
+        }
+        return true;
+    }
+
+    public List<Order> getRandomOrders(int limit) {
+        ArrayList<Order> randomOrders = new ArrayList<Order>();
         try (Connection connection = ds.getConnection()) {
 
             try {
                 Statement statement = connection.createStatement();
-                String sqlStatement = String.format("SELECT * FROM orders ORDER BY random() LIMIT %d;", limit);
+                String sqlStatement = String.format("SELECT * FROM order ORDER BY random() LIMIT %d;", limit);
                 sqlLog.add(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
                 while (rs.next()) {
 
-                    Orders order = new Orders();
+                    Order order = new Order();
                     order.initWithResultSet(rs);
                     randomOrders.add(order);
 
@@ -591,19 +724,19 @@ class BenchmarkDAO {
         return randomOrders;
     }
 
-    public List<Orders> getOrdersFromCustomer(String customerID) {
-        ArrayList<Orders> randomOrders = new ArrayList<Orders>();
+    public List<Order> getOrdersFromCustomer(String customerID) {
+        ArrayList<Order> randomOrders = new ArrayList<Order>();
         try (Connection connection = ds.getConnection()) {
 
             try {
                 Statement statement = connection.createStatement();
-                String sqlStatement = String.format("SELECT * FROM orders WHERE c_id = '%s'", customerID);
+                String sqlStatement = String.format("SELECT * FROM order WHERE c_id = '%s'", customerID);
                 sqlLog.add(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
                 while (rs.next()) {
 
-                    Orders order = new Orders();
+                    Order order = new Order();
                     order.initWithResultSet(rs);
                     randomOrders.add(order);
 
@@ -629,8 +762,84 @@ class BenchmarkDAO {
         return randomOrders;
     }
 
+    public List<Order> getOrdersOfCustomerFromDB(Customer customer) {
+        ArrayList<Order> customerOrders = new ArrayList<Order>();
+        try (Connection connection = ds.getConnection()) {
 
-    public int bulkInsertRandomOrderLine(int amount, List<Orders> orderList, List<Item> itemList) {
+            try {
+                Statement statement = connection.createStatement();
+                String sqlStatement = String.format("SELECT * FROM order WHERE c_id = '%s'", customer.c_id);
+                sqlLog.add(sqlStatement);
+                ResultSet rs = statement.executeQuery(sqlStatement);
+
+                while (rs.next()) {
+
+                    Order order = new Order();
+                    order.initWithResultSet(rs);
+                    customerOrders.add(order);
+
+                }
+
+                rs.close();
+
+                statement.close();
+
+                connection.close();
+
+            } catch (Exception e) {
+
+                System.err.println(e.getClass().getName() + ": " + e.getMessage());
+
+                System.exit(0);
+
+            }
+        } catch (SQLException e) {
+            System.out.printf("BenchmarkDAO.getOrdersOfCustomerFromDB ERROR: { state => %s, cause => %s, message => %s }\n",
+                    e.getSQLState(), e.getCause(), e.getMessage());
+        }
+        return customerOrders;
+    }
+
+    public Order getOrderOfCustomerFromDB(Customer customer, Order order) {
+        Order customerOrders = null;
+        try (Connection connection = ds.getConnection()) {
+
+            try {
+                Statement statement = connection.createStatement();
+                String sqlStatement = String.format("SELECT * FROM order WHERE c_id = '%s' AND o_id = '%s'", customer.c_id, order.o_id);
+                sqlLog.add(sqlStatement);
+                ResultSet rs = statement.executeQuery(sqlStatement);
+
+                while (rs.next()) {
+
+                    customerOrders = new Order();
+                    customerOrders.initWithResultSet(rs);
+
+                }
+
+                rs.close();
+
+                statement.close();
+
+                connection.close();
+
+            } catch (Exception e) {
+
+                System.err.println(e.getClass().getName() + ": " + e.getMessage());
+
+                System.exit(0);
+
+            }
+        } catch (SQLException e) {
+            System.out.printf("BenchmarkDAO.getOrderOfCustomerFromDB ERROR: { state => %s, cause => %s, message => %s }\n",
+                    e.getSQLState(), e.getCause(), e.getMessage());
+        }
+        return customerOrders;
+    }
+
+
+
+    public int bulkInsertRandomOrderLine(int amount, List<Order> orderList, List<Item> itemList) {
 
         int BATCH_SIZE = 128;
         int totalNewAccounts = 0;
@@ -647,7 +856,7 @@ class BenchmarkDAO {
             try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO order_line (ol_id, o_id, i_id, ol_qty, ol_discount, ol_status) VALUES (?, ?, ?, ?, ?, ? )")) {
                 for (int i = 0; i <= (amount / BATCH_SIZE); i++) {
                     for (int j = 0; j < BATCH_SIZE; j++) {
-                        Orders randomOrder = orderList.get(RandomUtils.nextInt(0, orderList.size()));
+                        Order randomOrder = orderList.get(RandomUtils.nextInt(0, orderList.size()));
                         Item randomItem = itemList.get(RandomUtils.nextInt(0, orderList.size()));
                         OrderLine orderLineRandom = new OrderLine().setRandomValues(randomOrder.o_id, randomItem.i_id);
                         orderLineRandom.fillStatement(pstmt);
@@ -674,46 +883,33 @@ class BenchmarkDAO {
         return totalNewAccounts;
     }
 
-    public List<OrderLine> insertOrderLine(Orders order, List<Item> itemList) {
-        List<OrderLine> orderLineList = new ArrayList<>();
-        int BATCH_SIZE = itemList.size();
+    public boolean insertOrderLinesIntoDB(List<OrderLine> orderLineList) {
 
         try (Connection connection = ds.getConnection()) {
 
-            // We're managing the commit lifecycle ourselves so we can
-            // control the size of our batch inserts.
             connection.setAutoCommit(false);
 
-            // In this example we are adding 500 rows to the database,
-            // but it could be any number.  What's important is that
-            // the batch size is 128.
             try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO order_line (ol_id, o_id, i_id, ol_qty, ol_discount, ol_status) VALUES (?, ?, ?, ?, ?, ? )")) {
-                for (int i = 0; i < (itemList.size() / BATCH_SIZE); i++) {
-                    for (int j = 0; j < BATCH_SIZE; j++) {
-                        Item randomItem = itemList.get(RandomUtils.nextInt(0, itemList.size()));
-                        OrderLine orderLineRandom = new OrderLine().setRandomValues(order.o_id, randomItem.i_id);
-                        orderLineRandom.fillStatement(pstmt);
-                        orderLineList.add(orderLineRandom);
-                        //System.out.println(pstmt);
-                        sqlLog.add(pstmt.toString());
-                        pstmt.addBatch();
-                    }
-                    int[] count = pstmt.executeBatch();
-                    //System.out.printf("\nBenchmarkDAO.insertOrderLine:\n    '%s'\n", pstmt.toString());
-                    //System.out.printf("    => %s row(s) updated in this batch\n", count.length);
+                for (OrderLine orderLine : orderLineList) {
+                    orderLine.fillStatement(pstmt);
+                    sqlLog.add(pstmt.toString());
+                    pstmt.addBatch();
                 }
+                pstmt.executeBatch();
                 connection.commit();
                 pstmt.close();
                 connection.close();
             } catch (SQLException e) {
-                System.out.printf("BenchmarkDAO.insertOrderLine ERROR: { state => %s, cause => %s, message => %s }\n",
+                System.out.printf("BenchmarkDAO.insertOrderLinesIntoDB ERROR: { state => %s, cause => %s, message => %s }\n",
                         e.getSQLState(), e.getCause(), e.getMessage());
+                return false;
             }
         } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.insertOrderLine ERROR: { state => %s, cause => %s, message => %s }\n",
+            System.out.printf("BenchmarkDAO.insertOrderLinesIntoDB ERROR: { state => %s, cause => %s, message => %s }\n",
                     e.getSQLState(), e.getCause(), e.getMessage());
+            return false;
         }
-        return orderLineList;
+        return true;
     }
 
     public List<OrderLine> getOrderLinesFromOrder(String orderID) {
@@ -752,6 +948,73 @@ class BenchmarkDAO {
                     e.getSQLState(), e.getCause(), e.getMessage());
         }
         return orderLines;
+    }
+
+    public List<OrderLine> getOrderLinesOfOrderFromDB(Order order) {
+        ArrayList<OrderLine> orderLines = new ArrayList<OrderLine>();
+        try (Connection connection = ds.getConnection()) {
+
+            try {
+                Statement statement = connection.createStatement();
+                String sqlStatement = String.format("SELECT * FROM order_line WHERE o_id = '%s'", order.o_id);
+                sqlLog.add(sqlStatement);
+                ResultSet rs = statement.executeQuery(sqlStatement);
+
+                while (rs.next()) {
+
+                    OrderLine orderLine = new OrderLine();
+                    orderLine.initWithResultSet(rs);
+                    orderLines.add(orderLine);
+
+                }
+
+                rs.close();
+
+                statement.close();
+
+                connection.close();
+
+            } catch (Exception e) {
+
+                System.err.println(e.getClass().getName() + ": " + e.getMessage());
+
+                System.exit(0);
+
+            }
+        } catch (SQLException e) {
+            System.out.printf("BenchmarkDAO.getOrderLinesOfOrderFromDB ERROR: { state => %s, cause => %s, message => %s }\n",
+                    e.getSQLState(), e.getCause(), e.getMessage());
+        }
+        return orderLines;
+    }
+
+
+    public void truncateAllTables() {
+        try (Connection connection = ds.getConnection()) {
+
+            // We're managing the commit lifecycle ourselves so we can
+            // control the size of our batch inserts.
+            connection.setAutoCommit(false);
+
+            // In this example we are adding 500 rows to the database,
+            // but it could be any number.  What's important is that
+            // the batch size is 128.
+            try (PreparedStatement pstmt = connection.prepareStatement("TRUNCATE TABLE customer CASCADE; TRUNCATE TABLE order CASCADE; TRUNCATE TABLE item CASCADE; TRUNCATE TABLE order_line CASCADE;")) {
+
+                sqlLog.add(pstmt.toString());
+
+                pstmt.execute();
+                connection.commit();
+                pstmt.close();
+                connection.close();
+            } catch (SQLException e) {
+                System.out.printf("BenchmarkDAO.insertRandomCustomer ERROR: { state => %s, cause => %s, message => %s }\n",
+                        e.getSQLState(), e.getCause(), e.getMessage());
+            }
+        } catch (SQLException e) {
+            System.out.printf("BenchmarkDAO.insertRandomCustomer ERROR: { state => %s, cause => %s, message => %s }\n",
+                    e.getSQLState(), e.getCause(), e.getMessage());
+        }
     }
 
 }
