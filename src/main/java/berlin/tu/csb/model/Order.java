@@ -25,17 +25,17 @@ public class Order {
 
     }
 
-    public Order setRandomValues(String fk_c_id) {
+    public Order setRandomValues(String fk_c_id, SeededRandomHelper seededRandomHelper) {
         o_id = UUID.randomUUID().toString();
         c_id = fk_c_id;
-        o_date = new Timestamp(SeededRandomHelper.getLongBetween(1577833200000L, 1641141846417L)); //2020 - now
-        o_sub_total = SeededRandomHelper.getFloatBetween(5f, 12000f);
+        o_date = new Timestamp(seededRandomHelper.getLongBetween(1577833200000L, 1641141846417L)); //2020 - now
+        o_sub_total = seededRandomHelper.getFloatBetween(5f, 12000f);
         o_tax = o_sub_total*0.19f;
         o_total = o_sub_total+o_tax;
-        o_ship_type = SeededRandomHelper.getStringWithLength(3, 10);
-        o_ship_date = new Timestamp(o_date.getTime() + SeededRandomHelper.getLongBetween(172800000L, 432000000L)); // 1-5 days after order
-        o_ship_addr = SeededRandomHelper.getStringWithLength(25, 100);
-        o_status = SeededRandomHelper.getStringWithLength(2, 16);
+        o_ship_type = seededRandomHelper.getStringWithLength(3, 10);
+        o_ship_date = new Timestamp(o_date.getTime() + seededRandomHelper.getLongBetween(172800000L, 432000000L)); // 1-5 days after order
+        o_ship_addr = seededRandomHelper.getStringWithLength(25, 100);
+        o_status = seededRandomHelper.getStringWithLength(2, 16);
         return this;
     }
 

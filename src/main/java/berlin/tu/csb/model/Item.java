@@ -24,17 +24,17 @@ public class Item {
 
     }
 
-    public Item setRandomValues() {
+    public Item setRandomValues(SeededRandomHelper seededRandomHelper) {
         i_id = UUID.randomUUID().toString();
-        i_title = SeededRandomHelper.getStringWithLength(5, 60);
-        i_pub_date = new Timestamp(SeededRandomHelper.getLongBetween(1, System.currentTimeMillis())); //LocalDateTime.of(RandomUtils.nextInt(1900, 2022), RandomUtils.nextInt(1, 12), RandomUtils.nextInt(1, 30), 0, 0, 0);
-        i_publisher = SeededRandomHelper.getStringWithLength(5, 60);
-        i_subject = SeededRandomHelper.getStringWithLength(5, 60);
-        i_desc = SeededRandomHelper.getStringWithLength(60, 500);
-        i_srp = SeededRandomHelper.getFloatBetween(5, 120);
-        i_cost = i_srp*SeededRandomHelper.getFloatBetween(0.5f, 1);
-        i_isbn = SeededRandomHelper.getStringWithLength(12, 13);
-        i_page = SeededRandomHelper.getIntBetween(10, 1800);
+        i_title = seededRandomHelper.getStringWithLength(5, 60);
+        i_pub_date = new Timestamp(seededRandomHelper.getLongBetween(1, System.currentTimeMillis())); //LocalDateTime.of(RandomUtils.nextInt(1900, 2022), RandomUtils.nextInt(1, 12), RandomUtils.nextInt(1, 30), 0, 0, 0);
+        i_publisher = seededRandomHelper.getStringWithLength(5, 60);
+        i_subject = seededRandomHelper.getStringWithLength(5, 60);
+        i_desc = seededRandomHelper.getStringWithLength(60, 500);
+        i_srp = seededRandomHelper.getFloatBetween(5, 120);
+        i_cost = i_srp*seededRandomHelper.getFloatBetween(0.5f, 1);
+        i_isbn = seededRandomHelper.getStringWithLength(12, 13);
+        i_page = seededRandomHelper.getIntBetween(10, 1800);
         return this;
     }
 

@@ -19,13 +19,13 @@ public class OrderLine {
 
     }
 
-    public OrderLine setRandomValues(String fk_o_id, String fk_i_id) {
+    public OrderLine setRandomValues(String fk_o_id, String fk_i_id, SeededRandomHelper seededRandomHelper) {
         ol_id = UUID.randomUUID().toString();
         o_id = fk_o_id;
         i_id = fk_i_id;
-        ol_qty = SeededRandomHelper.getIntBetween(1, 100);
-        ol_discount = SeededRandomHelper.getFloatBetween(0, 100);
-        ol_status = SeededRandomHelper.getStringWithLength(2, 16);
+        ol_qty = seededRandomHelper.getIntBetween(1, 100);
+        ol_discount = seededRandomHelper.getFloatBetween(0, 100);
+        ol_status = seededRandomHelper.getStringWithLength(2, 16);
         return this;
     }
 

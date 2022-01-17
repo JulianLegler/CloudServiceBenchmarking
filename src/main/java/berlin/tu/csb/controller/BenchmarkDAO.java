@@ -27,6 +27,8 @@ class BenchmarkDAO {
     private static final String RETRY_SQL_STATE = "40001";
     private static final boolean FORCE_RETRY = false;
 
+    SeededRandomHelper seededRandomHelper = new SeededRandomHelper();
+
     public List sqlLog;
 
     private final DataSource ds;
@@ -309,7 +311,7 @@ class BenchmarkDAO {
             try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO customer (c_id, c_business_name, c_business_info, c_passwd, c_contact_fname, c_contact_lname, c_addr, c_contact_phone, c_contact_email, c_payment_method, c_credit_info, c_discount) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)")) {
                 for (int i = 0; i <= (amount / BATCH_SIZE); i++) {
                     for (int j = 0; j < BATCH_SIZE; j++) {
-                        Customer customerRandom = new Customer().setRandomCustomerValues();
+                        Customer customerRandom = new Customer().setRandomCustomerValues(seededRandomHelper);
                         customerRandom.fillStatement(pstmt);
                         //System.out.println(pstmt);
                         sqlLog.add(pstmt.toString());
@@ -347,7 +349,7 @@ class BenchmarkDAO {
             // the batch size is 128.
             try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO customer (c_id, c_business_name, c_business_info, c_passwd, c_contact_fname, c_contact_lname, c_addr, c_contact_phone, c_contact_email, c_payment_method, c_credit_info, c_discount) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)")) {
 
-                customerRandom = new Customer().setRandomCustomerValues();
+                customerRandom = new Customer().setRandomCustomerValues(seededRandomHelper);
                 customerRandom.fillStatement(pstmt);
                 sqlLog.add(pstmt.toString());
 
@@ -483,7 +485,7 @@ class BenchmarkDAO {
             try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO item (i_id, i_title, i_pub_date, i_publisher, i_subject, i_desc, i_srp, i_cost, i_isbn, i_page) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
                 for (int i = 0; i <= (amount / BATCH_SIZE); i++) {
                     for (int j = 0; j < BATCH_SIZE; j++) {
-                        Item itemRandom = new Item().setRandomValues();
+                        Item itemRandom = new Item().setRandomValues(seededRandomHelper);
                         itemRandom.fillStatement(pstmt);
                         //System.out.println(pstmt);
                         sqlLog.add(pstmt.toString());
@@ -601,7 +603,7 @@ class BenchmarkDAO {
             try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO orders (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
                 for (int i = 0; i <= (amount / BATCH_SIZE); i++) {
                     for (int j = 0; j < BATCH_SIZE; j++) {
-                        Order orderRandom = new Order().setRandomValues(customerList.get(RandomUtils.nextInt(0, customerList.size())).c_id);
+                        Order orderRandom = new Order().setRandomValues(customerList.get(RandomUtils.nextInt(0, customerList.size())).c_id, seededRandomHelper);
                         orderRandom.fillStatement(pstmt);
                         //System.out.println(pstmt);
                         sqlLog.add(pstmt.toString());
@@ -636,7 +638,7 @@ class BenchmarkDAO {
             connection.setAutoCommit(false);
 
             try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO orders (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
-                orderRandom = new Order().setRandomValues(customer.c_id);
+                orderRandom = new Order().setRandomValues(customer.c_id, seededRandomHelper);
                 orderRandom.fillStatement(pstmt);
                 sqlLog.add(pstmt.toString());
 
@@ -855,7 +857,7 @@ class BenchmarkDAO {
                     for (int j = 0; j < BATCH_SIZE; j++) {
                         Order randomOrder = orderList.get(RandomUtils.nextInt(0, orderList.size()));
                         Item randomItem = itemList.get(RandomUtils.nextInt(0, orderList.size()));
-                        OrderLine orderLineRandom = new OrderLine().setRandomValues(randomOrder.o_id, randomItem.i_id);
+                        OrderLine orderLineRandom = new OrderLine().setRandomValues(randomOrder.o_id, randomItem.i_id, seededRandomHelper);
                         orderLineRandom.fillStatement(pstmt);
                         //System.out.println(pstmt);
                         sqlLog.add(pstmt.toString());

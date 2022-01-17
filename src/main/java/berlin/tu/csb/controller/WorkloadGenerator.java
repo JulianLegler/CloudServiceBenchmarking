@@ -20,11 +20,13 @@ public class WorkloadGenerator implements Runnable {
     StateController stateController;
     WorkerGeneratorController workerGeneratorController;
     DatabaseController databaseController;
+    SeededRandomHelper seededRandomHelper;
 
-    public WorkloadGenerator(StateController stateController, DatabaseController databaseController, long startTime, long runTimeInSeconds, long endTime) {
+    public WorkloadGenerator(StateController stateController, DatabaseController databaseController, SeededRandomHelper seededRandomHelper, long startTime, long runTimeInSeconds, long endTime) {
         this.stateController = stateController;
-        this.workerGeneratorController = new WorkerGeneratorController(stateController);
+        this.workerGeneratorController = new WorkerGeneratorController(stateController, seededRandomHelper);
         this.databaseController = databaseController;
+        this.seededRandomHelper = seededRandomHelper;
         this.startTime = startTime;
         this.runTimeInSeconds = runTimeInSeconds;
         this.endTime = endTime;
@@ -43,9 +45,9 @@ public class WorkloadGenerator implements Runnable {
         System.out.println("thread started");
         while (System.currentTimeMillis() < endTime) {
 
-            //for(int i = 0; i < 100; i++) {
-            //    insertNewData();
-            //}
+            for(int i = 0; i < 2; i++) {
+                insertNewData();
+            }
 
             int differentCases = SeededRandomHelper.getIntBetween(0, 4);
             switch (differentCases) {

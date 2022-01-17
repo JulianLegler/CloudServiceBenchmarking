@@ -30,7 +30,9 @@ public class MainController {
 
         databaseController = new DatabaseController("tpc_w_light", "root", 26257, serverAddresses);
 
-        //databaseController.dao.truncateAllTables();
+        databaseController.dao.truncateAllTables();
+
+        long seed = 2122;
 
 
         long t1_1 = System.currentTimeMillis();
@@ -40,13 +42,13 @@ public class MainController {
 
 
         List<Thread> threadList = new ArrayList<>();
-        for (int i = 0; i < 1; i++) {
-            WorkloadGenerator workloadGenerator = new WorkloadGenerator(new StateController(), databaseController, startTime, runTimeInSeconds, endTime);
-            workloadGenerator.run();
+        for (int i = 1; i <= 10; i++) {
+            WorkloadGenerator workloadGenerator = new WorkloadGenerator(new StateController(), databaseController, new SeededRandomHelper(seed+i), startTime, runTimeInSeconds, endTime);
+            //workloadGenerator.run();
 
-            //Thread thread = new Thread(workloadGenerator);
-            //threadList.add(thread);
-            //thread.start(); // TODO: change back to start();
+            Thread thread = new Thread(workloadGenerator);
+            threadList.add(thread);
+            thread.start();
         }
 
         try {

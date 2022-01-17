@@ -21,22 +21,20 @@ public class Customer {
     public String c_credit_info;
     public float c_discount;
 
-    public Customer() {
-    }
 
-    public Customer setRandomCustomerValues() {
+    public Customer setRandomCustomerValues(SeededRandomHelper seededRandomHelper) {
         c_id = UUID.randomUUID().toString();
-        c_business_name = SeededRandomHelper.getStringWithLength(5, 20);
-        c_business_info = SeededRandomHelper.getStringWithLength(20, 100);
-        c_passwd = SeededRandomHelper.getStringWithLength(5, 20);
-        c_contact_fname = SeededRandomHelper.getStringWithLength(5, 15);
-        c_contact_lname = SeededRandomHelper.getStringWithLength(5, 15);
-        c_addr = SeededRandomHelper.getStringWithLength(30, 100);
-        c_contact_phone = String.valueOf(SeededRandomHelper.getLongBetween(8, 16));
-        c_contact_email = SeededRandomHelper.getStringWithLength(7, 35);
-        c_payment_method = SeededRandomHelper.getStringWithLength(1, 2);
-        c_credit_info = SeededRandomHelper.getStringWithLength(20,300);
-        c_discount = SeededRandomHelper.getFloatBetween(0, 35);
+        c_business_name = seededRandomHelper.getStringWithLength(5, 20);
+        c_business_info = seededRandomHelper.getStringWithLength(20, 100);
+        c_passwd = seededRandomHelper.getStringWithLength(5, 20);
+        c_contact_fname = seededRandomHelper.getStringWithLength(5, 15);
+        c_contact_lname = seededRandomHelper.getStringWithLength(5, 15);
+        c_addr = seededRandomHelper.getStringWithLength(30, 100);
+        c_contact_phone = String.valueOf(seededRandomHelper.getLongBetween(8, 16));
+        c_contact_email = seededRandomHelper.getStringWithLength(7, 35);
+        c_payment_method = seededRandomHelper.getStringWithLength(1, 2);
+        c_credit_info = seededRandomHelper.getStringWithLength(20,300);
+        c_discount = seededRandomHelper.getFloatBetween(0, 35);
         return this;
     }
 
