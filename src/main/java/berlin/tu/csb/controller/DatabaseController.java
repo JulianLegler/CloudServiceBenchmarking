@@ -14,7 +14,7 @@ public class DatabaseController {
 
     public DatabaseController(String dbName, String dbUserName, int dbPort, String[] serverAddresses) {
 
-        System.out.println("Connecting to databases " + serverAddresses );
+        System.out.println("Connecting to databases " + serverAddresses[0] );
 
         // Configure the database connection.
         PGSimpleDataSource ds = new PGSimpleDataSource();
@@ -27,15 +27,6 @@ public class DatabaseController {
         ds.setReWriteBatchedInserts(true); // add `rewriteBatchedInserts=true` to pg connection string
         ds.setApplicationName("BasicExample");
 
-        PGSimpleDataSource ds2 = new PGSimpleDataSource();
-        ds2.setServerNames(new String[]{serverAddresses[1]});
-        ds2.setPortNumbers(new int[]{dbPort});
-        ds2.setDatabaseName(dbName);
-        ds2.setUser(dbUserName);
-        ds2.setSsl(false);
-        ds2.setSslMode("disable");
-        ds2.setReWriteBatchedInserts(true); // add `rewriteBatchedInserts=true` to pg connection string
-        ds2.setApplicationName("BasicExample");
 
         // Create DAO
         this.dao = new BenchmarkDAO(ds);

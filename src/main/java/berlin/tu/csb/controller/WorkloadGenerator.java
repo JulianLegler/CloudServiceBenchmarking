@@ -43,25 +43,36 @@ public class WorkloadGenerator implements Runnable {
         System.out.println("thread started");
         while (System.currentTimeMillis() < endTime) {
 
+            //for(int i = 0; i < 100; i++) {
+            //    insertNewData();
+            //}
+
             int differentCases = SeededRandomHelper.getIntBetween(0, 4);
             switch (differentCases) {
                 case 0:
-                    System.out.printf("Running case 0 - create and insert new customer, order with lines and items to db");
-                    insertNewData();
+                    System.out.println("Running case 0 - create and insert new customer, order with lines and items to db");
+                    if(!insertNewData()) {
+                        System.out.println("Error while running insertNewData");
+                    }
                     break;
                 case 1:
-                    System.out.printf("Running case 1 - create and insert new items to db");
-                    insertNewItems();
+                    System.out.println("Running case 1 - create and insert new items to db");
+                    if(!insertNewItems()) {
+                        System.out.println("Error while running insertNewItems");
+                    }
+                    break;
                 case 2:
-                    System.out.printf("Running case 2 - create and insert new order with lines for existing user and items to db");
+                    System.out.println("Running case 2 - create and insert new order with lines for existing user and items to db");
                     if(!placeNewOrderForExistingCustomer()) {
                         System.out.println("Error while running placeNewOrderForExistingCustomer");
                     }
+                    break;
                 case 3:
-                    System.out.printf("Running case 3 - create and insert new customer, order with lines for existing items to db");
+                    System.out.println("Running case 3 - create and insert new customer, order with lines for existing items to db");
                     if(!placeNewOrderForNewCustomer()) {
                         System.out.println("Error while running placeNewOrderForNewCustomer");
                     }
+                    break;
                 default:
                     System.out.println("Default Case reached, something is wrong?");
             }
@@ -108,14 +119,6 @@ public class WorkloadGenerator implements Runnable {
             System.out.printf("Error while inserting Customer %s", customer);
             isSuccessful = false;
 
-        }
-        if (isSuccessful) {
-            for (Item item : itemList) {
-                if (!databaseController.insertItem(item)) {
-                    System.out.printf("Error while inserting Item %s", item);
-                    isSuccessful = false;
-                }
-            }
         }
         if (isSuccessful) {
             if(!databaseController.insertOrderWithOrderLines(order, orderLineList)) {

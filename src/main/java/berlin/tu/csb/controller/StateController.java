@@ -61,7 +61,7 @@ public class StateController {
             }
         }
         else {
-            itemList = (List<Item>) itemMap.values();
+            itemList = new ArrayList<>(itemMap.values());
         }
         return itemList;
     }

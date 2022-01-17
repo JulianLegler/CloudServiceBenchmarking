@@ -373,9 +373,6 @@ class BenchmarkDAO {
             // control the size of our batch inserts.
             connection.setAutoCommit(false);
 
-            // In this example we are adding 500 rows to the database,
-            // but it could be any number.  What's important is that
-            // the batch size is 128.
             try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO customer (c_id, c_business_name, c_business_info, c_passwd, c_contact_fname, c_contact_lname, c_addr, c_contact_phone, c_contact_email, c_payment_method, c_credit_info, c_discount) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)")) {
 
                 customer.fillStatement(pstmt);
@@ -386,12 +383,12 @@ class BenchmarkDAO {
                 pstmt.close();
                 connection.close();
             } catch (SQLException e) {
-                System.out.printf("BenchmarkDAO.insertRandomCustomer ERROR: { state => %s, cause => %s, message => %s }\n",
+                System.out.printf("BenchmarkDAO.insertCustomerIntoDB ERROR: { state => %s, cause => %s, message => %s }\n",
                         e.getSQLState(), e.getCause(), e.getMessage());
                 return false;
             }
         } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.insertRandomCustomer ERROR: { state => %s, cause => %s, message => %s }\n",
+            System.out.printf("BenchmarkDAO.insertCustomerIntoDB ERROR: { state => %s, cause => %s, message => %s }\n",
                     e.getSQLState(), e.getCause(), e.getMessage());
             return false;
         }
@@ -601,7 +598,7 @@ class BenchmarkDAO {
             // In this example we are adding 500 rows to the database,
             // but it could be any number.  What's important is that
             // the batch size is 128.
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO order (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
+            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO orders (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
                 for (int i = 0; i <= (amount / BATCH_SIZE); i++) {
                     for (int j = 0; j < BATCH_SIZE; j++) {
                         Order orderRandom = new Order().setRandomValues(customerList.get(RandomUtils.nextInt(0, customerList.size())).c_id);
@@ -638,7 +635,7 @@ class BenchmarkDAO {
             // control the size of our batch inserts.
             connection.setAutoCommit(false);
 
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO order (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
+            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO orders (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
                 orderRandom = new Order().setRandomValues(customer.c_id);
                 orderRandom.fillStatement(pstmt);
                 sqlLog.add(pstmt.toString());
@@ -665,7 +662,7 @@ class BenchmarkDAO {
             // control the size of our batch inserts.
             connection.setAutoCommit(false);
 
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO order (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
+            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO orders (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
                 order.fillStatement(pstmt);
                 sqlLog.add(pstmt.toString());
 
@@ -692,7 +689,7 @@ class BenchmarkDAO {
 
             try {
                 Statement statement = connection.createStatement();
-                String sqlStatement = String.format("SELECT * FROM order ORDER BY random() LIMIT %d;", limit);
+                String sqlStatement = String.format("SELECT * FROM orders ORDER BY random() LIMIT %d;", limit);
                 sqlLog.add(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
@@ -730,7 +727,7 @@ class BenchmarkDAO {
 
             try {
                 Statement statement = connection.createStatement();
-                String sqlStatement = String.format("SELECT * FROM order WHERE c_id = '%s'", customerID);
+                String sqlStatement = String.format("SELECT * FROM orders WHERE c_id = '%s'", customerID);
                 sqlLog.add(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
@@ -768,7 +765,7 @@ class BenchmarkDAO {
 
             try {
                 Statement statement = connection.createStatement();
-                String sqlStatement = String.format("SELECT * FROM order WHERE c_id = '%s'", customer.c_id);
+                String sqlStatement = String.format("SELECT * FROM orders WHERE c_id = '%s'", customer.c_id);
                 sqlLog.add(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
@@ -806,7 +803,7 @@ class BenchmarkDAO {
 
             try {
                 Statement statement = connection.createStatement();
-                String sqlStatement = String.format("SELECT * FROM order WHERE c_id = '%s' AND o_id = '%s'", customer.c_id, order.o_id);
+                String sqlStatement = String.format("SELECT * FROM orders WHERE c_id = '%s' AND o_id = '%s'", customer.c_id, order.o_id);
                 sqlLog.add(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
@@ -999,7 +996,7 @@ class BenchmarkDAO {
             // In this example we are adding 500 rows to the database,
             // but it could be any number.  What's important is that
             // the batch size is 128.
-            try (PreparedStatement pstmt = connection.prepareStatement("TRUNCATE TABLE customer CASCADE; TRUNCATE TABLE order CASCADE; TRUNCATE TABLE item CASCADE; TRUNCATE TABLE order_line CASCADE;")) {
+            try (PreparedStatement pstmt = connection.prepareStatement("TRUNCATE TABLE customer CASCADE; TRUNCATE TABLE orders CASCADE; TRUNCATE TABLE item CASCADE; TRUNCATE TABLE order_line CASCADE;")) {
 
                 sqlLog.add(pstmt.toString());
 

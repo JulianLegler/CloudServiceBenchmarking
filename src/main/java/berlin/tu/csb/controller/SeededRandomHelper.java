@@ -1,9 +1,10 @@
 package berlin.tu.csb.controller;
 
+import java.util.Date;
 import java.util.Random;
 
 public class SeededRandomHelper {
-    public static Random seededRandom = new Random(2122);
+    public static Random seededRandom = new Random(2122 + new Date().getTime());
     public static String alphabet[] =  {"a","b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A","B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"};
 
 
