@@ -13,6 +13,7 @@ import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Data access object used by 'BasicExample'.  Abstraction over some
@@ -1073,5 +1074,44 @@ class BenchmarkDAO {
             System.out.printf("BenchmarkDAO.insertRandomCustomer ERROR: { state => %s, cause => %s, message => %s }\n",
                     e.getSQLState(), e.getCause(), e.getMessage());
         }
+    }
+
+    public List<Item> getItemsFromDB(List<Item> itemList) {
+        ArrayList<Item> updatedItemList = new ArrayList<>();
+        try (Connection connection = ds.getConnection()) {
+
+            try {
+                Statement statement = connection.createStatement();
+                String sqlStatement = String.format("SELECT * FROM order_line WHERE i_id IN ('%s')", itemList.stream().map(i -> i.i_id).collect(Collectors.joining("','")));
+                sqlLog.add(sqlStatement);
+                logger.info(sqlStatement);
+                ResultSet rs = statement.executeQuery(sqlStatement);
+
+                while (rs.next()) {
+
+                    Item item = new Item();
+                    item.initWithResultSet(rs);
+                    updatedItemList.add(item);
+
+                }
+
+                rs.close();
+
+                statement.close();
+
+                connection.close();
+
+            } catch (Exception e) {
+
+                System.err.println(e.getClass().getName() + ": " + e.getMessage());
+
+                System.exit(0);
+
+            }
+        } catch (SQLException e) {
+            System.out.printf("BenchmarkDAO.getItemsFromDB ERROR: { state => %s, cause => %s, message => %s }\n",
+                    e.getSQLState(), e.getCause(), e.getMessage());
+        }
+        return updatedItemList;
     }
 }

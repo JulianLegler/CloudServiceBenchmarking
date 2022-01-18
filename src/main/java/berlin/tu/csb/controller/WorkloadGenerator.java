@@ -101,6 +101,12 @@ public class WorkloadGenerator implements Runnable {
                         logger.error("Error while running fetchOrdersFromRandomCustomer");
                     }
                     break;
+                case 7:
+                    logger.info("Running case 6 - get random items from the db");
+                    if(!fetchRandomItems()) {
+                        logger.error("Error while running fetchRandomItems");
+                    }
+                    break;
                 default:
                     logger.error("Default Case reached, something is wrong?");
             }
@@ -276,6 +282,10 @@ public class WorkloadGenerator implements Runnable {
 
     private boolean fetchRandomItem() {
         return persistenceController.databaseController.getItem(persistenceController.stateController.getRandomItem()) != null;
+    }
+
+    private boolean fetchRandomItems() {
+        return persistenceController.databaseController.getItems(persistenceController.stateController.getRandomItems(seededRandomHelper.getIntBetween(1, 20))).size() != 0;
     }
 
     private boolean fetchRandomCustomer() {

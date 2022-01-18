@@ -81,6 +81,10 @@ public class DatabaseController {
         return dao.getItemFromDB(item);
     }
 
+    public List<Item> getItems(List<Item> itemList) {
+        return dao.getItemsFromDB(itemList);
+    }
+
     public Customer getCustomer(Customer customer) {
         return dao.getCustomerFromDB(customer);
     }
