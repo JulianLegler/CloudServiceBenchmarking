@@ -37,13 +37,15 @@ public class MainController {
 
         long t1_1 = System.currentTimeMillis();
         long startTime = System.currentTimeMillis() + 5000;
-        long runTimeInSeconds = 5;
+        long runTimeInSeconds = 100;
         long endTime = startTime + runTimeInSeconds * 1000;
 
 
         List<Thread> threadList = new ArrayList<>();
-        for (int i = 1; i <= 10; i++) {
-            WorkloadGenerator workloadGenerator = new WorkloadGenerator(new StateController(), databaseController, new SeededRandomHelper(seed+i), startTime, runTimeInSeconds, endTime);
+        for (int i = 1; i <= 100; i++) {
+            // Have a PersistenceController per thread to manage the current database part that is used by this thread so they dont interfere with each other
+            PersistenceController persistenceController = new PersistenceController(databaseController, new StateController());
+            WorkloadGenerator workloadGenerator = new WorkloadGenerator(persistenceController, new SeededRandomHelper(seed+i), startTime, runTimeInSeconds, endTime);
             //workloadGenerator.run();
 
             Thread thread = new Thread(workloadGenerator);
@@ -62,9 +64,9 @@ public class MainController {
         long t1_2 = System.currentTimeMillis();
 
 
-        System.out.println(databaseController.dao.sqlLog);
+        //System.out.println(databaseController.dao.sqlLog);
         System.out.println("Log size:" + databaseController.dao.sqlLog.size());
-        System.out.println("Executed " + databaseController.dao.sqlLog.size() + " in " + (t1_2-t1_1)/1000 + " seconds. " + databaseController.dao.sqlLog.size() / runTimeInSeconds + "t/s AVG");
+        System.out.println("Executed " + databaseController.dao.sqlLog.size() + " in " + (t1_2-t1_1)/1000 + " seconds. " + databaseController.dao.sqlLog.size() / runTimeInSeconds + "t/s AVG of planned time and " + databaseController.dao.sqlLog.size() / ((t1_2-t1_1)/1000) + " t/s AVG on the actual time used");
 
     }
 

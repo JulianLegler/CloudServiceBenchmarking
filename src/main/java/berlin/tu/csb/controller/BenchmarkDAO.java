@@ -373,7 +373,7 @@ class BenchmarkDAO {
 
             // We're managing the commit lifecycle ourselves so we can
             // control the size of our batch inserts.
-            connection.setAutoCommit(false);
+            //connection.setAutoCommit(false);
 
             try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO customer (c_id, c_business_name, c_business_info, c_passwd, c_contact_fname, c_contact_lname, c_addr, c_contact_phone, c_contact_email, c_payment_method, c_credit_info, c_discount) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)")) {
 
@@ -381,7 +381,7 @@ class BenchmarkDAO {
                 sqlLog.add(pstmt.toString());
 
                 pstmt.execute();
-                connection.commit();
+                //connection.commit();
                 pstmt.close();
                 connection.close();
             } catch (SQLException e) {
@@ -441,7 +441,7 @@ class BenchmarkDAO {
 
             // We're managing the commit lifecycle ourselves so we can
             // control the size of our batch inserts.
-            connection.setAutoCommit(false);
+            //connection.setAutoCommit(false);
 
             // In this example we are adding 500 rows to the database,
             // but it could be any number.  What's important is that
@@ -452,7 +452,7 @@ class BenchmarkDAO {
                 sqlLog.add(pstmt.toString());
 
                 pstmt.execute();
-                connection.commit();
+                //connection.commit();
                 pstmt.close();
                 connection.close();
             } catch (SQLException e) {
@@ -662,14 +662,14 @@ class BenchmarkDAO {
 
             // We're managing the commit lifecycle ourselves so we can
             // control the size of our batch inserts.
-            connection.setAutoCommit(false);
+            //connection.setAutoCommit(false);
 
             try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO orders (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
                 order.fillStatement(pstmt);
                 sqlLog.add(pstmt.toString());
 
                 pstmt.execute();
-                connection.commit();
+                //connection.commit();
                 pstmt.close();
                 connection.close();
             } catch (SQLException e) {
@@ -993,7 +993,7 @@ class BenchmarkDAO {
 
             // We're managing the commit lifecycle ourselves so we can
             // control the size of our batch inserts.
-            connection.setAutoCommit(false);
+            //connection.setAutoCommit(false);
 
             // In this example we are adding 500 rows to the database,
             // but it could be any number.  What's important is that
@@ -1003,7 +1003,7 @@ class BenchmarkDAO {
                 sqlLog.add(pstmt.toString());
 
                 pstmt.execute();
-                connection.commit();
+                //connection.commit();
                 pstmt.close();
                 connection.close();
             } catch (SQLException e) {

@@ -17,15 +17,13 @@ public class WorkloadGenerator implements Runnable {
     long startTime;
     long runTimeInSeconds;
     long endTime;
-    StateController stateController;
     WorkerGeneratorController workerGeneratorController;
-    DatabaseController databaseController;
     SeededRandomHelper seededRandomHelper;
+    PersistenceController persistenceController;
 
-    public WorkloadGenerator(StateController stateController, DatabaseController databaseController, SeededRandomHelper seededRandomHelper, long startTime, long runTimeInSeconds, long endTime) {
-        this.stateController = stateController;
-        this.workerGeneratorController = new WorkerGeneratorController(stateController, seededRandomHelper);
-        this.databaseController = databaseController;
+    public WorkloadGenerator(PersistenceController persistenceController, SeededRandomHelper seededRandomHelper, long startTime, long runTimeInSeconds, long endTime) {
+        this.persistenceController = persistenceController;
+        this.workerGeneratorController = new WorkerGeneratorController(seededRandomHelper);
         this.seededRandomHelper = seededRandomHelper;
         this.startTime = startTime;
         this.runTimeInSeconds = runTimeInSeconds;
@@ -34,9 +32,10 @@ public class WorkloadGenerator implements Runnable {
 
     @Override
     public void run() {
+        // Coordination Phase: All threads wait until the set time has come
         while (System.currentTimeMillis() < startTime) {
             try {
-                Thread.sleep(10);
+                Thread.sleep(100);
 
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -79,8 +78,6 @@ public class WorkloadGenerator implements Runnable {
                     System.out.println("Default Case reached, something is wrong?");
             }
 
-
-            //System.out.println("added items to order " + orderLine.size());
         }
         System.out.println("thread finished");
     }
@@ -98,8 +95,8 @@ public class WorkloadGenerator implements Runnable {
 
         // Get some existing Items
         List<Item> itemList;
-        if(workerGeneratorController.stateController.hasItems()) {
-            itemList = workerGeneratorController.stateController.getRandomItems(SeededRandomHelper.getIntBetween(1, 8));
+        if(persistenceController.stateController.hasItems()) {
+            itemList = persistenceController.stateController.getRandomItems(SeededRandomHelper.getIntBetween(1, 8));
         }
         else {
             System.out.println("Error: no items in local state");
@@ -117,13 +114,13 @@ public class WorkloadGenerator implements Runnable {
          *
          */
         boolean isSuccessful = true;
-        if (!databaseController.insertCustomer(customer)) {
+        if (!persistenceController.insertCustomer(customer)) {
             System.out.printf("Error while inserting Customer %s", customer);
             isSuccessful = false;
 
         }
         if (isSuccessful) {
-            if(!databaseController.insertOrderWithOrderLines(order, orderLineList)) {
+            if(!persistenceController.insertOrderWithOrderLines(order, orderLineList)) {
                 System.out.printf("Error while inserting order (with orderlines) %s", order);
                 isSuccessful = false;
             }
@@ -141,8 +138,8 @@ public class WorkloadGenerator implements Runnable {
          */
         // get an existing customer
         Customer customer;
-        if(workerGeneratorController.stateController.hasCustomer()) {
-            customer = workerGeneratorController.stateController.getRandomCustomer();
+        if(persistenceController.stateController.hasCustomer()) {
+            customer = persistenceController.stateController.getRandomCustomer();
         }
         else {
             System.out.println("Error: no customers in local state");
@@ -151,8 +148,8 @@ public class WorkloadGenerator implements Runnable {
 
         // Get some existing Items
         List<Item> itemList;
-        if(workerGeneratorController.stateController.hasItems()) {
-            itemList = workerGeneratorController.stateController.getRandomItems(SeededRandomHelper.getIntBetween(1, 8));
+        if(persistenceController.stateController.hasItems()) {
+            itemList = persistenceController.stateController.getRandomItems(SeededRandomHelper.getIntBetween(1, 8));
         }
         else {
             System.out.println("Error: no items in local state");
@@ -172,7 +169,7 @@ public class WorkloadGenerator implements Runnable {
          */
         boolean isSuccessful = true;
         if (isSuccessful) {
-            if(!databaseController.insertOrderWithOrderLines(order, orderLineList)) {
+            if(!persistenceController.insertOrderWithOrderLines(order, orderLineList)) {
                 System.out.printf("Error while inserting order (with orderlines) %s", order);
                 isSuccessful = false;
             }
@@ -199,21 +196,21 @@ public class WorkloadGenerator implements Runnable {
          *
          */
         boolean isSuccessful = true;
-        if (!databaseController.insertCustomer(customer)) {
+        if (!persistenceController.insertCustomer(customer)) {
             System.out.printf("Error while inserting Customer %s", customer);
             isSuccessful = false;
 
         }
         if (isSuccessful) {
             for (Item item : itemList) {
-                if (!databaseController.insertItem(item)) {
+                if (!persistenceController.insertItem(item)) {
                     System.out.printf("Error while inserting Item %s", item);
                     isSuccessful = false;
                 }
             }
         }
         if (isSuccessful) {
-            if(!databaseController.insertOrderWithOrderLines(order, orderLineList)) {
+            if(!persistenceController.insertOrderWithOrderLines(order, orderLineList)) {
                 System.out.printf("Error while inserting order (with orderlines) %s", order);
                 isSuccessful = false;
             }
@@ -239,7 +236,7 @@ public class WorkloadGenerator implements Runnable {
         boolean isSuccessful = true;
 
         for (Item item : itemList) {
-            if (!databaseController.insertItem(item)) {
+            if (!persistenceController.insertItem(item)) {
                 System.out.printf("Error while inserting Item %s", item);
                 isSuccessful = false;
             }
