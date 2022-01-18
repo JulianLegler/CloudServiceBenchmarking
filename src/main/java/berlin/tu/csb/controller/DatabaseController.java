@@ -34,7 +34,7 @@ public class DatabaseController {
         ds.setSslMode("disable");
         ds.setReWriteBatchedInserts(true); // add `rewriteBatchedInserts=true` to pg connection string
         ds.setApplicationName("BasicExample");
-        */
+         */
 
         /* Apache Commons DBCP - With Connection Pooling
 
