@@ -1,10 +1,5 @@
 package berlin.tu.csb.controller;
 
-import berlin.tu.csb.model.Customer;
-import berlin.tu.csb.model.Item;
-import berlin.tu.csb.model.Order;
-import berlin.tu.csb.model.OrderLine;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;

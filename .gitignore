@@ -1,2 +1,3 @@
 /build/classes/java/main/berlin/tu/csb/*.class
 *.class
+/terraform/public_ip.csv

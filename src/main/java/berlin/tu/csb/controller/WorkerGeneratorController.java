@@ -16,18 +16,15 @@ public class WorkerGeneratorController {
     }
 
     public Customer getNewCustomerModelWithRandomData() {
-        Customer customer = new Customer().setRandomCustomerValues(seededRandomHelper);
-        return customer;
+        return new Customer().setRandomCustomerValues(seededRandomHelper);
     }
 
     public Order getNewOrderModelWithRandomData(Customer customer) {
-        Order order = new Order().setRandomValues(customer.c_id, seededRandomHelper);
-        return order;
+        return new Order().setRandomValues(customer.c_id, seededRandomHelper);
     }
 
     public Item getNewItemModelWithRandomData() {
-        Item item = new Item().setRandomValues(seededRandomHelper);
-        return item;
+        return new Item().setRandomValues(seededRandomHelper);
     }
 
     public List<Item> getNewItemModelListWithRandomData(int itemListSize) {

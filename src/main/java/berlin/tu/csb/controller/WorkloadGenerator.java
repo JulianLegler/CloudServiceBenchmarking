@@ -4,7 +4,7 @@ import berlin.tu.csb.model.Customer;
 import berlin.tu.csb.model.Item;
 import berlin.tu.csb.model.Order;
 import berlin.tu.csb.model.OrderLine;
-import org.apache.commons.lang3.RandomUtils;
+import org.apache.logging.log4j.ThreadContext;
 
 import java.util.List;
 
@@ -32,6 +32,7 @@ public class WorkloadGenerator implements Runnable {
 
     @Override
     public void run() {
+        ThreadContext.put("threadName", Thread.currentThread().getName());
         // Coordination Phase: All threads wait until the set time has come
         while (System.currentTimeMillis() < startTime) {
             try {
@@ -80,6 +81,7 @@ public class WorkloadGenerator implements Runnable {
 
         }
         System.out.println("thread finished");
+        ThreadContext.clearMap();
     }
 
     private boolean placeNewOrderForNewCustomer() {

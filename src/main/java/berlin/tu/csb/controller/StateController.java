@@ -8,15 +8,15 @@ import berlin.tu.csb.model.OrderLine;
 import java.util.*;
 
 public class StateController {
-    private Map<String, Customer> customerMap = new HashMap<>();
-    private Map<String, Item> itemMap = new HashMap<>();
-    private Map<String, Order> orderMap = new HashMap<>();
-    private Map<String, OrderLine> orderLineMap = new HashMap<>();
+    private final Map<String, Customer> customerMap = new HashMap<>();
+    private final Map<String, Item> itemMap = new HashMap<>();
+    private final Map<String, Order> orderMap = new HashMap<>();
+    private final Map<String, OrderLine> orderLineMap = new HashMap<>();
 
-    private ArrayList<String> customerIds = new ArrayList<>();
-    private ArrayList<String> itemIds = new ArrayList<>();
-    private ArrayList<String> orderIds = new ArrayList<>();
-    private ArrayList<String> orderLineIds = new ArrayList<>();
+    private final ArrayList<String> customerIds = new ArrayList<>();
+    private final ArrayList<String> itemIds = new ArrayList<>();
+    private final ArrayList<String> orderIds = new ArrayList<>();
+    private final ArrayList<String> orderLineIds = new ArrayList<>();
 
 
     public void addCustomer(Customer customer) {

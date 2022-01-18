@@ -7,8 +7,6 @@ import berlin.tu.csb.model.Order;
 import berlin.tu.csb.model.OrderLine;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import org.apache.commons.dbcp.BasicDataSource;
-import org.postgresql.ds.PGSimpleDataSource;
 
 import java.util.List;
 
@@ -59,43 +57,23 @@ public class DatabaseController {
     }
 
     public boolean insertCustomer(Customer customer) {
-        if(dao.insertCustomerIntoDB(customer)) {
-            return true;
-        }
-        else
-            return false;
+        return dao.insertCustomerIntoDB(customer);
     }
 
     public boolean insertItem(Item item) {
-        if(dao.insertItemIntoDB(item)) {
-            return true;
-        }
-        else
-            return false;
+        return dao.insertItemIntoDB(item);
     }
 
     public boolean insertOrder(Order order) {
-        if(dao.insertOrderIntoDB(order)) {
-            return true;
-        }
-        else
-            return false;
+        return dao.insertOrderIntoDB(order);
     }
 
     public boolean insertOrderLines(List<OrderLine> orderLineList) {
-        if(dao.insertOrderLinesIntoDB(orderLineList)) {
-            return true;
-        }
-        else
-            return false;
+        return dao.insertOrderLinesIntoDB(orderLineList);
     }
 
     public boolean insertOrderWithOrderLines(Order order, List<OrderLine> orderLines) {
-        if(insertOrder(order) && insertOrderLines(orderLines)) {
-            return true;
-        }
-        else
-            return false;
+        return insertOrder(order) && insertOrderLines(orderLines);
     }
 
     // TODO: some getters
