@@ -119,8 +119,8 @@ public class BasicExample {
             System.out.println(orderLine);
         }
 
-        System.out.println("Insert Log size:" + dao.sqlLog.size());
-        System.out.println("Select Log size:" + dao2.sqlLog.size());
+        //System.out.println("Insert Log size:" + dao.sqlLog.size());
+        //System.out.println("Select Log size:" + dao2.sqlLog.size());
 
 
 

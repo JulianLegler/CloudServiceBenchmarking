@@ -7,6 +7,7 @@ import berlin.tu.csb.model.Order;
 import berlin.tu.csb.model.OrderLine;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.postgresql.ds.PGSimpleDataSource;
 
 import java.util.List;
 
@@ -22,7 +23,7 @@ public class DatabaseController {
 
         /* Default JDBC for postgres - Without connection pooling
 
-
+         */
         PGSimpleDataSource ds = new PGSimpleDataSource();
         ds.setServerNames(new String[]{serverAddresses[0]});
         ds.setPortNumbers(new int[]{dbPort});
@@ -32,7 +33,7 @@ public class DatabaseController {
         ds.setSslMode("disable");
         ds.setReWriteBatchedInserts(true); // add `rewriteBatchedInserts=true` to pg connection string
         ds.setApplicationName("BasicExample");
-         */
+
 
         /* Apache Commons DBCP - With Connection Pooling
 
@@ -43,13 +44,13 @@ public class DatabaseController {
         */
 
         /* HikariCP - With connection pooling
-         */
+
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(String.format("jdbc:postgresql://%s:%s/%s", serverAddresses[0], dbPort, dbName));
         config.setUsername("root");
 
         HikariDataSource ds = new HikariDataSource(config);
-
+        */
 
 
         // Create DAO
@@ -76,6 +77,25 @@ public class DatabaseController {
         return insertOrder(order) && insertOrderLines(orderLines);
     }
 
-    // TODO: some getters
+    public Item getItem(Item item) {
+        return dao.getItemFromDB(item);
+    }
+
+    public Customer getCustomer(Customer customer) {
+        return dao.getCustomerFromDB(customer);
+    }
+
+    public Order getOrder(Order order) {
+        return dao.getOrderOfCustomerFromDB(order);
+    }
+
+    public List<Order> getOrdersOfCustomer(Customer customer) {
+        return dao.getOrdersOfCustomerFromDB(customer);
+    }
+
+    public List<OrderLine> getOrderLinesOfOrder(Order order) {
+        return dao.getOrderLinesOfOrderFromDB(order);
+    }
+
 
 }

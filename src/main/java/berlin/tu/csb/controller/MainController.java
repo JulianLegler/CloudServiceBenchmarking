@@ -32,14 +32,17 @@ public class MainController {
 
         long t1_1 = System.currentTimeMillis();
         long startTime = System.currentTimeMillis() + 5000;
-        long runTimeInSeconds = 100;
+        long runTimeInSeconds = 10;
         long endTime = startTime + runTimeInSeconds * 1000;
 
 
         List<Thread> threadList = new ArrayList<>();
-        for (int i = 1; i <= 100; i++) {
+        List<PersistenceController> persistenceControllerList = new ArrayList<>();
+
+        for (int i = 1; i <= 2; i++) {
             // Have a PersistenceController per thread to manage the current database part that is used by this thread so they dont interfere with each other
-            PersistenceController persistenceController = new PersistenceController(databaseController, new StateController());
+            PersistenceController persistenceController = new PersistenceController(new DatabaseController("tpc_w_light", "root", 26257, serverAddresses), new StateController());
+            persistenceControllerList.add(persistenceController);
             WorkloadGenerator workloadGenerator = new WorkloadGenerator(persistenceController, new SeededRandomHelper(seed+i), startTime, runTimeInSeconds, endTime);
             //workloadGenerator.run();
 
@@ -57,6 +60,12 @@ public class MainController {
             e.printStackTrace();
         }
         long t1_2 = System.currentTimeMillis();
+
+        int counter = 0;
+        for (PersistenceController persistenceController : persistenceControllerList) {
+            System.out.println("Thread-" + counter + ": " + persistenceController.databaseController.dao.sqlLog);
+            counter++;
+        }
 
 
         //System.out.println(databaseController.dao.sqlLog);

@@ -42,7 +42,7 @@ public class SeededRandomHelper {
     }
 
     public static int getIntBetween(int start, int end) {
-        return  start + ((int)(seededRandom.nextDouble() * (end - start)));
+        return  start + ((int)(seededRandom.nextDouble() * ((end - start) + 1 )));
     }
 
 

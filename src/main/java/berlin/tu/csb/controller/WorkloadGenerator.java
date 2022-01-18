@@ -4,8 +4,11 @@ import berlin.tu.csb.model.Customer;
 import berlin.tu.csb.model.Item;
 import berlin.tu.csb.model.Order;
 import berlin.tu.csb.model.OrderLine;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -20,6 +23,7 @@ public class WorkloadGenerator implements Runnable {
     WorkerGeneratorController workerGeneratorController;
     SeededRandomHelper seededRandomHelper;
     PersistenceController persistenceController;
+    Logger logger = LogManager.getLogger(WorkloadGenerator.class);
 
     public WorkloadGenerator(PersistenceController persistenceController, SeededRandomHelper seededRandomHelper, long startTime, long runTimeInSeconds, long endTime) {
         this.persistenceController = persistenceController;
@@ -32,7 +36,10 @@ public class WorkloadGenerator implements Runnable {
 
     @Override
     public void run() {
+        // Add some thread specific informations for logging and collection of the SQL statements
         ThreadContext.put("threadName", Thread.currentThread().getName());
+
+
         // Coordination Phase: All threads wait until the set time has come
         while (System.currentTimeMillis() < startTime) {
             try {
@@ -42,45 +49,64 @@ public class WorkloadGenerator implements Runnable {
                 e.printStackTrace();
             }
         }
-        System.out.println("thread started");
+        logger.info("thread started");
+        logger.error("Test error");
         while (System.currentTimeMillis() < endTime) {
 
             for(int i = 0; i < 2; i++) {
                 insertNewData();
             }
 
-            int differentCases = SeededRandomHelper.getIntBetween(0, 4);
+            int differentCases = SeededRandomHelper.getIntBetween(0, 6);
             switch (differentCases) {
                 case 0:
-                    System.out.println("Running case 0 - create and insert new customer, order with lines and items to db");
+                    logger.info("Running case 0 - create and insert new customer, order with lines and items to db");
                     if(!insertNewData()) {
-                        System.out.println("Error while running insertNewData");
+                        logger.error("Error while running insertNewData");
                     }
                     break;
                 case 1:
-                    System.out.println("Running case 1 - create and insert new items to db");
+                    logger.info("Running case 1 - create and insert new items to db");
                     if(!insertNewItems()) {
-                        System.out.println("Error while running insertNewItems");
+                        logger.error("Error while running insertNewItems");
                     }
                     break;
                 case 2:
-                    System.out.println("Running case 2 - create and insert new order with lines for existing user and items to db");
+                    logger.info("Running case 2 - create and insert new order with lines for existing user and items to db");
                     if(!placeNewOrderForExistingCustomer()) {
-                        System.out.println("Error while running placeNewOrderForExistingCustomer");
+                        logger.error("Error while running placeNewOrderForExistingCustomer");
                     }
                     break;
                 case 3:
-                    System.out.println("Running case 3 - create and insert new customer, order with lines for existing items to db");
+                    logger.info("Running case 3 - create and insert new customer, order with lines for existing items to db");
                     if(!placeNewOrderForNewCustomer()) {
-                        System.out.println("Error while running placeNewOrderForNewCustomer");
+                        logger.error("Error while running placeNewOrderForNewCustomer");
+                    }
+                    break;
+                case 4:
+                    logger.info("Running case 4 - get a random item from the db");
+                    if(!fetchRandomItem()) {
+                        logger.error("Error while running fetchRandomItem");
+                    }
+                    break;
+                case 5:
+                    logger.info("Running case 5 - get a random customer from the db");
+                    if(!fetchRandomCustomer()) {
+                        logger.error("Error while running fetchRandomCustomer");
+                    }
+                    break;
+                case 6:
+                    logger.info("Running case 6 - get all orders from a random customer from the db");
+                    if(!fetchOrdersFromRandomCustomer()) {
+                        logger.error("Error while running fetchOrdersFromRandomCustomer");
                     }
                     break;
                 default:
-                    System.out.println("Default Case reached, something is wrong?");
+                    logger.error("Default Case reached, something is wrong?");
             }
 
         }
-        System.out.println("thread finished");
+        logger.info("thread finished");
         ThreadContext.clearMap();
     }
 
@@ -246,6 +272,18 @@ public class WorkloadGenerator implements Runnable {
 
 
         return isSuccessful;
+    }
+
+    private boolean fetchRandomItem() {
+        return persistenceController.databaseController.getItem(persistenceController.stateController.getRandomItem()) != null;
+    }
+
+    private boolean fetchRandomCustomer() {
+        return persistenceController.databaseController.getCustomer(persistenceController.stateController.getRandomCustomer()) != null;
+    }
+
+    private boolean fetchOrdersFromRandomCustomer() {
+        return persistenceController.databaseController.getOrdersOfCustomer(persistenceController.stateController.getRandomCustomer()) != null;
     }
 }
 
