@@ -14,7 +14,7 @@ import java.util.*;
 
 public class MainController {
     static DatabaseController databaseController;
-    static final int threadCount = 5;
+    static int threadCount = 5;
 
     public static void main(String[] args) {
         System.out.println("Present Project Directory : "+ System.getProperty("user.dir"));
@@ -30,8 +30,8 @@ public class MainController {
         }
 
         BenchmarkConfig benchmarkConfig = new BenchmarkConfig();
-        benchmarkConfig.dbCustomerInsertsLoadPhase = 10000 / threadCount;
-        benchmarkConfig.dbItemInsertsLoadPhase = 10000 / threadCount;
+        benchmarkConfig.dbCustomerInsertsLoadPhase = 1000 / threadCount;
+        benchmarkConfig.dbItemInsertsLoadPhase = 1000 / threadCount;
         benchmarkConfig.dbOrderInsertsLoadPhase = (long)(benchmarkConfig.dbCustomerInsertsLoadPhase * 1.2);
 
         String[] serverAddresses = content.split(",");
@@ -40,8 +40,101 @@ public class MainController {
 
         databaseController = new DatabaseController("tpc_w_light", "root", 26257, serverAddresses[0]);
 
-        databaseController.dao.truncateAllTables();
+        // databaseController.dao.truncateAllTables();
 
+
+
+        // runLoadPhase(serverAddresses, benchmarkConfig);
+        runRunPhase(serverAddresses, benchmarkConfig);
+
+    }
+
+    private static void runRunPhase(String[] serverAddresses, BenchmarkConfig benchmarkConfig) {
+        long seed = 2122;
+
+
+        long t1_1 = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis() + 5000;
+        long runTimeInSeconds = 60 * 1;
+        long endTime = startTime + runTimeInSeconds * 1000;
+
+        threadCount = 1;
+
+
+        List<Thread> threadList = new ArrayList<>();
+        List<PersistenceController> persistenceControllerList = new ArrayList<>();
+
+        for (int i = 1; i <= threadCount; i++) {
+            String pickedServerAddress = serverAddresses[i % serverAddresses.length];
+
+            // Have a PersistenceController per thread to manage the current database part that is used by this thread so they dont interfere with each other
+            PersistenceController persistenceController = new PersistenceController(new DatabaseController("tpc_w_light", "root", 26257, pickedServerAddress), new StateController());
+            persistenceControllerList.add(persistenceController);
+            RunPhaseGenerator runPhaseGenerator = new RunPhaseGenerator(persistenceController, new SeededRandomHelper(seed+i), startTime, runTimeInSeconds, endTime);
+            //workloadGenerator.run();
+
+            Thread thread = new Thread(runPhaseGenerator);
+            threadList.add(thread);
+            thread.start();
+        }
+
+        try {
+            for (Thread thread : threadList) {
+                thread.join();
+            }
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        long t1_2 = System.currentTimeMillis();
+
+        int sqlCounter = 0;
+        for (PersistenceController persistenceController : persistenceControllerList) {
+            //System.out.println("Thread-" + counter + ": " + persistenceController.databaseController.dao.sqlLog);
+            //counter++;
+            sqlCounter += persistenceController.databaseController.dao.sqlLog.size();
+        }
+
+
+
+
+        //System.out.println(databaseController.dao.sqlLog);
+        System.out.println("Log size:" + sqlCounter);
+        System.out.println("Executed " + sqlCounter + " in " + (t1_2-t1_1)/1000 + " seconds. " + sqlCounter / runTimeInSeconds + "t/s AVG of planned time and " + sqlCounter / ((t1_2-t1_1)/1000) + " t/s AVG on the actual time used");
+
+
+        // Create for each iteration a new directory with the creation timestamp of the workload
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH.mm.ss.SSS");
+        Date now = new Date(System.currentTimeMillis());
+        String dateString = sdf.format(now);
+
+        // use GSON to create json objects of the safed workload queries and safe them to a directory
+        Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+        for (PersistenceController persistenceController: persistenceControllerList) {
+
+            System.out.println("Customers in DB:" + persistenceController.stateController.getCustomerListSize());
+            System.out.println("Items in DB:" + persistenceController.stateController.getItemListSize());
+            System.out.println("Orders in DB:" + persistenceController.stateController.getOrderSize());
+
+            String json = gson.toJson(persistenceController.databaseController.workloadQueryController.workloadQueryList);
+            //System.out.println(json);
+
+            long threadId = persistenceController.databaseController.workloadQueryController.workloadContextId;
+
+            Path filePath = Paths.get(System.getProperty("user.dir"), "workload", dateString, String.valueOf(threadId)+".json");
+            try {
+                Files.createDirectories(filePath.getParent());
+                Files.writeString(filePath, json, StandardOpenOption.CREATE_NEW);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+
+
+    private static void runLoadPhase(String[] serverAddresses, BenchmarkConfig benchmarkConfig) {
         long seed = 2122;
 
 
@@ -119,7 +212,6 @@ public class MainController {
                 e.printStackTrace();
             }
         }
-
     }
 
 }

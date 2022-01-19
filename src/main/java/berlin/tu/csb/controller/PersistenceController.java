@@ -46,7 +46,7 @@ public class PersistenceController {
 
     private boolean insertOrder(Order order) {
         if(databaseController.insertOrder(order)) {
-
+            stateController.addOrder(order);
             return true;
         }
         else
@@ -55,7 +55,9 @@ public class PersistenceController {
 
     private boolean bulkInsertOrders(List<Order> orderList) {
         if(databaseController.bulkInsertOrders(orderList)) {
-
+            for (Order order:orderList) {
+                stateController.addOrder(order);
+            }
             return true;
         }
         return false;
@@ -63,7 +65,9 @@ public class PersistenceController {
 
     private boolean insertOrderLines(List<OrderLine> orderLineList) {
         if(databaseController.insertOrderLines(orderLineList)) {
-
+            for (OrderLine orderLine: orderLineList) {
+                stateController.addOrderLine(orderLine);
+            }
             return true;
         }
         else
@@ -72,10 +76,6 @@ public class PersistenceController {
 
     public boolean insertOrderWithOrderLines(Order order, List<OrderLine> orderLineList) {
         if(insertOrder(order) && insertOrderLines(orderLineList)) {
-            stateController.addOrder(order);
-            for (OrderLine orderLine: orderLineList) {
-                stateController.addOrderLine(orderLine);
-            }
             return true;
         }
         else
@@ -84,13 +84,6 @@ public class PersistenceController {
 
     public boolean bulkInsterOrdersAndBulkInsertOrderLines(List<Order> orderList, List<OrderLine> orderLineList) {
         if(bulkInsertOrders(orderList) && insertOrderLines(orderLineList)) {
-            for (Order order:orderList) {
-                stateController.addOrder(order);
-            }
-            for (OrderLine orderLine: orderLineList) {
-                stateController.addOrderLine(orderLine);
-            }
-
             return true;
         }
         else return false;
@@ -105,5 +98,28 @@ public class PersistenceController {
             return true;
         }
         return false;
+    }
+
+    public boolean syncCustomerStateWithDB() {
+        List<Customer> customerList = databaseController.fetchAllCustomers();
+        if (customerList == null || customerList.size() == 0) {
+            return false;
+        }
+        for (Customer customer: databaseController.fetchAllCustomers()) {
+            stateController.addCustomer(customer);
+        }
+        return true;
+    }
+
+
+    public boolean syncItemStateWithDB() {
+        List<Item> itemList = databaseController.fetchAllItems();
+        if(itemList == null || itemList.size() == 0) {
+            return false;
+        }
+        for (Item item:itemList) {
+            stateController.addItem(item);
+        }
+        return true;
     }
 }

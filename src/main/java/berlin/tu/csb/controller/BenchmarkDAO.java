@@ -44,7 +44,7 @@ class BenchmarkDAO {
 
     BenchmarkDAO(DataSource ds, WorkloadQueryController workloadQueryController) {
         this.ds = ds;
-        this. workloadQueryController = workloadQueryController;
+        this.workloadQueryController = workloadQueryController;
         this.sqlLog = new ArrayList<>();
     }
 
@@ -307,14 +307,14 @@ class BenchmarkDAO {
 
             try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO customer (c_id, c_business_name, c_business_info, c_passwd, c_contact_fname, c_contact_lname, c_addr, c_contact_phone, c_contact_email, c_payment_method, c_credit_info, c_discount) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)")) {
                 int counter = 0;
-                for (Customer customer: customerList) {
+                for (Customer customer : customerList) {
                     counter++;
                     customer.fillStatement(pstmt);
                     sqlLog.add(pstmt.toString());
                     workloadQueryController.add(pstmt.toString());
                     logger.trace(pstmt.toString());
                     pstmt.addBatch();
-                    if(counter % 100 == 0 || counter == customerList.size()) {
+                    if (counter % 100 == 0 || counter == customerList.size()) {
                         int[] count = pstmt.executeBatch();
                         logger.trace(String.format("\nBenchmarkDAO.bulkInsertCustomersToDB:\n    '%s'\n", pstmt));
                         logger.trace(String.format("    => %s row(s) updated in this batch\n", count.length));
@@ -610,14 +610,14 @@ class BenchmarkDAO {
 
             try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO item (i_id, i_title, i_pub_date, i_publisher, i_subject, i_desc, i_srp, i_cost, i_isbn, i_page) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
                 int counter = 0;
-                for (Item item: itemList) {
+                for (Item item : itemList) {
                     counter++;
                     item.fillStatement(pstmt);
                     sqlLog.add(pstmt.toString());
                     workloadQueryController.add(pstmt.toString());
                     logger.trace(pstmt.toString());
                     pstmt.addBatch();
-                    if(counter % 100 == 0 || counter == itemList.size()) {
+                    if (counter % 100 == 0 || counter == itemList.size()) {
                         int[] count = pstmt.executeBatch();
                         logger.trace(String.format("\nBenchmarkDAO.bulkInsertItemsToDB:\n    '%s'\n", pstmt));
                         logger.trace(String.format("    => %s row(s) updated in this batch\n", count.length));
@@ -693,14 +693,14 @@ class BenchmarkDAO {
 
             try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO orders (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
                 int counter = 0;
-                for (Order order: orderList) {
+                for (Order order : orderList) {
                     counter++;
                     order.fillStatement(pstmt);
                     sqlLog.add(pstmt.toString());
                     workloadQueryController.add(pstmt.toString());
                     logger.trace(pstmt.toString());
                     pstmt.addBatch();
-                    if(counter % 100 == 0 || counter == orderList.size()) {
+                    if (counter % 100 == 0 || counter == orderList.size()) {
                         int[] count = pstmt.executeBatch();
                         logger.trace(String.format("\nBenchmarkDAO.bulkInsertOrdersToDB:\n    '%s'\n", pstmt));
                         logger.trace(String.format("    => %s row(s) updated in this batch\n", count.length));
@@ -1138,7 +1138,7 @@ class BenchmarkDAO {
 
             try {
                 Statement statement = connection.createStatement();
-                String sqlStatement = String.format("SELECT * FROM order_line WHERE i_id IN ('%s')", itemList.stream().map(i -> i.i_id).collect(Collectors.joining("','")));
+                String sqlStatement = String.format("SELECT * FROM item WHERE i_id IN ('%s')", itemList.stream().map(i -> i.i_id).collect(Collectors.joining("','")));
                 sqlLog.add(sqlStatement);
                 workloadQueryController.add(sqlStatement);
                 logger.trace(sqlStatement);
@@ -1173,4 +1173,82 @@ class BenchmarkDAO {
     }
 
 
+    public List<Customer> getAllCustomersFromDB() {
+
+        List<Customer> customerList = new ArrayList<>();
+        try (Connection connection = ds.getConnection()) {
+
+            try {
+                Statement statement = connection.createStatement();
+                String sqlStatement = String.format("SELECT * FROM customer");
+                sqlLog.add(sqlStatement);
+                workloadQueryController.add(sqlStatement);
+                logger.trace(sqlStatement);
+                ResultSet rs = statement.executeQuery(sqlStatement);
+
+                while (rs.next()) {
+                    Customer customer = new Customer();
+                    customer.initWithResultSet(rs);
+                    customerList.add(customer);
+                }
+
+                rs.close();
+
+                statement.close();
+
+                connection.close();
+
+            } catch (Exception e) {
+
+                System.err.println(e.getClass().getName() + ": " + e.getMessage());
+
+                System.exit(0);
+
+            }
+        } catch (SQLException e) {
+            System.out.printf("BenchmarkDAO.getAllCustomersFromDB ERROR: { state => %s, cause => %s, message => %s }\n",
+                    e.getSQLState(), e.getCause(), e.getMessage());
+        }
+        return customerList;
+    }
+
+    public List<Item> getAllItemsFormDB() {
+        ArrayList<Item> itemList = new ArrayList<>();
+        try (Connection connection = ds.getConnection()) {
+
+            try {
+                Statement statement = connection.createStatement();
+                String sqlStatement = String.format("SELECT * FROM item");
+                sqlLog.add(sqlStatement);
+                workloadQueryController.add(sqlStatement);
+                logger.trace(sqlStatement);
+                ResultSet rs = statement.executeQuery(sqlStatement);
+
+                while (rs.next()) {
+
+                    Item item = new Item();
+                    item.initWithResultSet(rs);
+                    itemList.add(item);
+
+                }
+
+                rs.close();
+
+                statement.close();
+
+                connection.close();
+
+            } catch (Exception e) {
+
+                System.err.println(e.getClass().getName() + ": " + e.getMessage());
+
+                System.exit(0);
+
+            }
+        } catch (SQLException e) {
+            System.out.printf("BenchmarkDAO.getAllItemsFormDB ERROR: { state => %s, cause => %s, message => %s }\n",
+                    e.getSQLState(), e.getCause(), e.getMessage());
+        }
+        return itemList;
+    }
 }
