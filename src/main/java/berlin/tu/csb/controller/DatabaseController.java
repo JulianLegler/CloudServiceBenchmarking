@@ -9,16 +9,21 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.postgresql.ds.PGSimpleDataSource;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class DatabaseController {
     BenchmarkDAO dao;
     WorkloadQueryController workloadQueryController;
 
 
-    public DatabaseController(String dbName, String dbUserName, int dbPort, String[] serverAddresses) {
+    public DatabaseController(String dbName, String dbUserName, int dbPort, String serverAddress) {
 
-        System.out.println("Connecting to databases " + serverAddresses[0] );
+
+
+
+        System.out.println("Connecting to databases " + serverAddress);
 
         // Configure the database connection.
 
@@ -26,7 +31,7 @@ public class DatabaseController {
 
          */
         PGSimpleDataSource ds = new PGSimpleDataSource();
-        ds.setServerNames(new String[]{serverAddresses[0]});
+        ds.setServerNames(new String[]{serverAddress});
         ds.setPortNumbers(new int[]{dbPort});
         ds.setDatabaseName(dbName);
         ds.setUser(dbUserName);

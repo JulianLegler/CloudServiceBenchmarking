@@ -11,9 +11,11 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class MainController {
     static DatabaseController databaseController;
+    static final int threadCount = 48;
 
     public static void main(String[] args) {
         System.out.println("Present Project Directory : "+ System.getProperty("user.dir"));
@@ -30,7 +32,9 @@ public class MainController {
 
         String[] serverAddresses = content.split(",");
 
-        databaseController = new DatabaseController("tpc_w_light", "root", 26257, serverAddresses);
+        // String pickedServerAddress = serverAddresses[ThreadLocalRandom.current().nextInt(0, serverAddresses.length)];
+
+        databaseController = new DatabaseController("tpc_w_light", "root", 26257, serverAddresses[0]);
 
         databaseController.dao.truncateAllTables();
 
@@ -39,16 +43,18 @@ public class MainController {
 
         long t1_1 = System.currentTimeMillis();
         long startTime = System.currentTimeMillis() + 5000;
-        long runTimeInSeconds = 3;
+        long runTimeInSeconds = 60 * 10;
         long endTime = startTime + runTimeInSeconds * 1000;
 
 
         List<Thread> threadList = new ArrayList<>();
         List<PersistenceController> persistenceControllerList = new ArrayList<>();
 
-        for (int i = 1; i <= 2; i++) {
+        for (int i = 1; i <= threadCount; i++) {
+            String pickedServerAddress = serverAddresses[i % serverAddresses.length];
+
             // Have a PersistenceController per thread to manage the current database part that is used by this thread so they dont interfere with each other
-            PersistenceController persistenceController = new PersistenceController(new DatabaseController("tpc_w_light", "root", 26257, serverAddresses), new StateController());
+            PersistenceController persistenceController = new PersistenceController(new DatabaseController("tpc_w_light", "root", 26257, pickedServerAddress), new StateController());
             persistenceControllerList.add(persistenceController);
             WorkloadGenerator workloadGenerator = new WorkloadGenerator(persistenceController, new SeededRandomHelper(seed+i), startTime, runTimeInSeconds, endTime);
             //workloadGenerator.run();
@@ -70,8 +76,8 @@ public class MainController {
 
         int counter = 0;
         for (PersistenceController persistenceController : persistenceControllerList) {
-            System.out.println("Thread-" + counter + ": " + persistenceController.databaseController.dao.sqlLog);
-            counter++;
+            //System.out.println("Thread-" + counter + ": " + persistenceController.databaseController.dao.sqlLog);
+            //counter++;
         }
 
 
@@ -86,7 +92,7 @@ public class MainController {
         String dateString = sdf.format(now);
 
         // use GSON to create json objects of the safed workload queries and safe them to a directory
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
         for (PersistenceController persistenceController: persistenceControllerList) {
             String json = gson.toJson(persistenceController.databaseController.workloadQueryController.workloadQueryList);
             //System.out.println(json);
