@@ -295,5 +295,6 @@ public class WorkloadGenerator implements Runnable {
     private boolean fetchOrdersFromRandomCustomer() {
         return persistenceController.databaseController.getOrdersOfCustomer(persistenceController.stateController.getRandomCustomer()) != null;
     }
+
 }
 

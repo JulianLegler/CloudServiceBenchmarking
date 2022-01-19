@@ -1,8 +1,15 @@
 package berlin.tu.csb.controller;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class MainController {
@@ -32,7 +39,7 @@ public class MainController {
 
         long t1_1 = System.currentTimeMillis();
         long startTime = System.currentTimeMillis() + 5000;
-        long runTimeInSeconds = 10;
+        long runTimeInSeconds = 3;
         long endTime = startTime + runTimeInSeconds * 1000;
 
 
@@ -71,6 +78,29 @@ public class MainController {
         //System.out.println(databaseController.dao.sqlLog);
         System.out.println("Log size:" + databaseController.dao.sqlLog.size());
         System.out.println("Executed " + databaseController.dao.sqlLog.size() + " in " + (t1_2-t1_1)/1000 + " seconds. " + databaseController.dao.sqlLog.size() / runTimeInSeconds + "t/s AVG of planned time and " + databaseController.dao.sqlLog.size() / ((t1_2-t1_1)/1000) + " t/s AVG on the actual time used");
+
+
+        // Create for each iteration a new directory with the creation timestamp of the workload
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH.mm.ss.SSS");
+        Date now = new Date(System.currentTimeMillis());
+        String dateString = sdf.format(now);
+
+        // use GSON to create json objects of the safed workload queries and safe them to a directory
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        for (PersistenceController persistenceController: persistenceControllerList) {
+            String json = gson.toJson(persistenceController.databaseController.workloadQueryController.workloadQueryList);
+            //System.out.println(json);
+
+            long threadId = persistenceController.databaseController.workloadQueryController.workloadContextId;
+
+            Path filePath = Paths.get(System.getProperty("user.dir"), "workload", dateString, String.valueOf(threadId)+".json");
+            try {
+                Files.createDirectories(filePath.getParent());
+                Files.writeString(filePath, json, StandardOpenOption.CREATE_NEW);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
 
     }
 

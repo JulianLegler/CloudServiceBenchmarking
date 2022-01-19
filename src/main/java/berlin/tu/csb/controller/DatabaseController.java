@@ -13,6 +13,7 @@ import java.util.List;
 
 public class DatabaseController {
     BenchmarkDAO dao;
+    WorkloadQueryController workloadQueryController;
 
 
     public DatabaseController(String dbName, String dbUserName, int dbPort, String[] serverAddresses) {
@@ -53,8 +54,9 @@ public class DatabaseController {
         */
 
 
+        this.workloadQueryController = new WorkloadQueryController();
         // Create DAO
-        this.dao = new BenchmarkDAO(ds);
+        this.dao = new BenchmarkDAO(ds, workloadQueryController);
     }
 
     public boolean insertCustomer(Customer customer) {

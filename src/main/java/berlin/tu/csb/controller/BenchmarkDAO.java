@@ -34,6 +34,7 @@ class BenchmarkDAO {
     SeededRandomHelper seededRandomHelper = new SeededRandomHelper();
 
     public List<String> sqlLog;
+    private WorkloadQueryController workloadQueryController;
 
     public static Logger logger = LogManager.getLogger(BenchmarkDAO.class);
 
@@ -41,8 +42,9 @@ class BenchmarkDAO {
 
     private final Random rand = new Random();
 
-    BenchmarkDAO(DataSource ds) {
+    BenchmarkDAO(DataSource ds, WorkloadQueryController workloadQueryController) {
         this.ds = ds;
+        this. workloadQueryController = workloadQueryController;
         this.sqlLog = new ArrayList<>();
     }
 
@@ -321,6 +323,7 @@ class BenchmarkDAO {
                         customerRandom.fillStatement(pstmt);
                         //System.out.println(pstmt);
                         sqlLog.add(pstmt.toString());
+                        workloadQueryController.add(pstmt.toString());
                         logger.info(pstmt.toString());
                         pstmt.addBatch();
                     }
@@ -358,7 +361,8 @@ class BenchmarkDAO {
 
                 customerRandom = new Customer().setRandomCustomerValues(seededRandomHelper);
                 customerRandom.fillStatement(pstmt);
-                sqlLog.add(pstmt.unwrap(HikariProxyPreparedStatement.class).toString());
+                sqlLog.add(pstmt.toString());
+                workloadQueryController.add(pstmt.toString());
                 logger.info(pstmt.toString());
 
                 pstmt.execute();
@@ -387,6 +391,7 @@ class BenchmarkDAO {
 
                 customer.fillStatement(pstmt);
                 sqlLog.add(pstmt.toString());
+                workloadQueryController.add(pstmt.toString());
                 logger.info(pstmt.toString());
 
 
@@ -415,6 +420,7 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format("SELECT * FROM customer ORDER BY random() LIMIT %d;", limit);
                 sqlLog.add(sqlStatement);
+                workloadQueryController.add(sqlStatement);
                 logger.info(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
@@ -452,6 +458,7 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format("SELECT * FROM customer WHERE c_id = '%s';", customer.c_id);
                 sqlLog.add(sqlStatement);
+                workloadQueryController.add(sqlStatement);
                 logger.info(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
@@ -495,6 +502,7 @@ class BenchmarkDAO {
 
                 item.fillStatement(pstmt);
                 sqlLog.add(pstmt.toString());
+                workloadQueryController.add(pstmt.toString());
                 logger.info(pstmt.toString());
 
                 pstmt.execute();
@@ -535,6 +543,7 @@ class BenchmarkDAO {
                         itemRandom.fillStatement(pstmt);
                         //System.out.println(pstmt);
                         sqlLog.add(pstmt.toString());
+                        workloadQueryController.add(pstmt.toString());
                         logger.info(pstmt.toString());
                         pstmt.addBatch();
                     }
@@ -565,6 +574,7 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format("SELECT * FROM item ORDER BY random() LIMIT %d;", limit);
                 sqlLog.add(sqlStatement);
+                workloadQueryController.add(sqlStatement);
                 logger.info(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
@@ -604,6 +614,7 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format("SELECT * FROM item WHERE i_id = '%s'", item.i_id);
                 sqlLog.add(sqlStatement);
+                workloadQueryController.add(sqlStatement);
                 logger.info(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
@@ -656,6 +667,7 @@ class BenchmarkDAO {
                         orderRandom.fillStatement(pstmt);
                         //System.out.println(pstmt);
                         sqlLog.add(pstmt.toString());
+                        workloadQueryController.add(pstmt.toString());
                         logger.info(pstmt.toString());
                         pstmt.addBatch();
                     }
@@ -691,6 +703,7 @@ class BenchmarkDAO {
                 orderRandom = new Order().setRandomValues(customer.c_id, seededRandomHelper);
                 orderRandom.fillStatement(pstmt);
                 sqlLog.add(pstmt.toString());
+                workloadQueryController.add(pstmt.toString());
                 logger.info(pstmt.toString());
 
                 pstmt.execute();
@@ -718,6 +731,7 @@ class BenchmarkDAO {
             try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO orders (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
                 order.fillStatement(pstmt);
                 sqlLog.add(pstmt.toString());
+                workloadQueryController.add(pstmt.toString());
                 logger.info(pstmt.toString());
 
                 pstmt.execute();
@@ -745,6 +759,7 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format("SELECT * FROM orders ORDER BY random() LIMIT %d;", limit);
                 sqlLog.add(sqlStatement);
+                workloadQueryController.add(sqlStatement);
                 logger.info(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
@@ -784,6 +799,7 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format("SELECT * FROM orders WHERE c_id = '%s'", customerID);
                 sqlLog.add(sqlStatement);
+                workloadQueryController.add(sqlStatement);
                 logger.info(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
@@ -823,6 +839,7 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format("SELECT * FROM orders WHERE c_id = '%s'", customer.c_id);
                 sqlLog.add(sqlStatement);
+                workloadQueryController.add(sqlStatement);
                 logger.info(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
@@ -862,6 +879,7 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format("SELECT * FROM orders WHERE o_id = '%s'", order.o_id);
                 sqlLog.add(sqlStatement);
+                workloadQueryController.add(sqlStatement);
                 logger.info(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
@@ -916,6 +934,7 @@ class BenchmarkDAO {
                         orderLineRandom.fillStatement(pstmt);
                         //System.out.println(pstmt);
                         sqlLog.add(pstmt.toString());
+                        workloadQueryController.add(pstmt.toString());
                         logger.info(pstmt.toString());
                         pstmt.addBatch();
                     }
@@ -948,6 +967,7 @@ class BenchmarkDAO {
                 for (OrderLine orderLine : orderLineList) {
                     orderLine.fillStatement(pstmt);
                     sqlLog.add(pstmt.toString());
+                    workloadQueryController.add(pstmt.toString());
                     logger.info(pstmt.toString());
                     pstmt.addBatch();
                 }
@@ -976,6 +996,7 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format("SELECT * FROM order_line WHERE o_id = '%s'", orderID);
                 sqlLog.add(sqlStatement);
+                workloadQueryController.add(sqlStatement);
                 logger.info(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
@@ -1015,6 +1036,7 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format("SELECT * FROM order_line WHERE o_id = '%s'", order.o_id);
                 sqlLog.add(sqlStatement);
+                workloadQueryController.add(sqlStatement);
                 logger.info(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
@@ -1060,6 +1082,7 @@ class BenchmarkDAO {
             try (PreparedStatement pstmt = connection.prepareStatement("TRUNCATE TABLE customer CASCADE; TRUNCATE TABLE orders CASCADE; TRUNCATE TABLE item CASCADE; TRUNCATE TABLE order_line CASCADE;")) {
 
                 sqlLog.add(pstmt.toString());
+                workloadQueryController.add(pstmt.toString());
                 logger.info(pstmt.toString());
 
                 pstmt.execute();
@@ -1084,6 +1107,7 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format("SELECT * FROM order_line WHERE i_id IN ('%s')", itemList.stream().map(i -> i.i_id).collect(Collectors.joining("','")));
                 sqlLog.add(sqlStatement);
+                workloadQueryController.add(sqlStatement);
                 logger.info(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 

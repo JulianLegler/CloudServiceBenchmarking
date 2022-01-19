@@ -49,7 +49,8 @@ public class Worker {
         //ds.setConnectTimeout();
 
         // Create DAO.
-        BenchmarkDAO dao = new BenchmarkDAO(ds);
+        WorkloadQueryController workloadQueryController = new WorkloadQueryController();
+        BenchmarkDAO dao = new BenchmarkDAO(ds, workloadQueryController);
 
 
 
