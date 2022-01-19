@@ -25,6 +25,16 @@ public class PersistenceController {
             return false;
     }
 
+    public boolean bulkInsertCustomers(List<Customer> customerList) {
+        if(databaseController.bulkInsertCustomers(customerList)) {
+            for (Customer customer:customerList) {
+                stateController.addCustomer(customer);
+            }
+            return true;
+        }
+        return false;
+    }
+
     public boolean insertItem(Item item) {
         if(databaseController.insertItem(item)) {
             stateController.addItem(item);
@@ -36,18 +46,24 @@ public class PersistenceController {
 
     private boolean insertOrder(Order order) {
         if(databaseController.insertOrder(order)) {
-            stateController.addOrder(order);
+
             return true;
         }
         else
             return false;
     }
 
+    private boolean bulkInsertOrders(List<Order> orderList) {
+        if(databaseController.bulkInsertOrders(orderList)) {
+
+            return true;
+        }
+        return false;
+    }
+
     private boolean insertOrderLines(List<OrderLine> orderLineList) {
         if(databaseController.insertOrderLines(orderLineList)) {
-            for (OrderLine orderLine: orderLineList) {
-                stateController.addOrderLine(orderLine);
-            }
+
             return true;
         }
         else
@@ -66,6 +82,28 @@ public class PersistenceController {
             return false;
     }
 
+    public boolean bulkInsterOrdersAndBulkInsertOrderLines(List<Order> orderList, List<OrderLine> orderLineList) {
+        if(bulkInsertOrders(orderList) && insertOrderLines(orderLineList)) {
+            for (Order order:orderList) {
+                stateController.addOrder(order);
+            }
+            for (OrderLine orderLine: orderLineList) {
+                stateController.addOrderLine(orderLine);
+            }
+
+            return true;
+        }
+        else return false;
+    }
 
 
+    public boolean bulkInsertItems(List<Item> itemList) {
+        if(databaseController.bulkInsertItems(itemList)) {
+            for (Item item:itemList) {
+                stateController.addItem(item);
+            }
+            return true;
+        }
+        return false;
+    }
 }

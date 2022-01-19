@@ -18,6 +18,19 @@ public class StateController {
     private final ArrayList<String> orderIds = new ArrayList<>();
     private final ArrayList<String> orderLineIds = new ArrayList<>();
 
+    public int getCustomerListSize() {
+        return customerIds.size();
+    }
+
+    public int getItemListSize() {
+        return itemIds.size();
+    }
+
+    public int getOrderSize() {
+        return orderIds.size();
+    }
+
+
 
     public void addCustomer(Customer customer) {
         customerMap.put(customer.c_id, customer);

@@ -6,7 +6,7 @@ variable "instances" { default = "3" }
 
 variable "prefix" { default = "csb" }
 
-variable "gcp_machine_type" { default = "e2-micro" }
+variable "gcp_machine_type" { default = "e2-micro" } // use e2-standard-2 // e2-micro
 
 variable "path_private_key" { default = "C:\\Users\\Roschy\\.ssh\\ri_key" }
 variable "path_public_key" { default = "C:\\Users\\Roschy\\.ssh\\ri_key.pub" }

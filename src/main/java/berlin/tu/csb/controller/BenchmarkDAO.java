@@ -220,88 +220,6 @@ class BenchmarkDAO {
         }
     }
 
-    /**
-     * Update accounts by passing in a Map of (ID, Balance) pairs.
-     *
-     * @param accounts (Map)
-     * @return The number of updated accounts (int)
-     */
-    public int updateAccounts(Map<String, String> accounts) {
-        int rows = 0;
-        for (Map.Entry<String, String> account : accounts.entrySet()) {
-
-            String k = account.getKey();
-            String v = account.getValue();
-
-            String[] args = {k, v};
-            rows += runSQL("INSERT INTO accounts (id, balance) VALUES (?, ?)", args);
-        }
-        return rows;
-    }
-
-    /**
-     * Transfer funds between one account and another.  Handles
-     * transaction retries in case of conflict automatically on the
-     * backend.
-     *
-     * @param fromId (UUID)
-     * @param toId   (UUID)
-     * @param amount (int)
-     * @return The number of updated accounts (int)
-     */
-    public int transferFunds(UUID fromId, UUID toId, BigDecimal amount) {
-        String sFromId = fromId.toString();
-        String sToId = toId.toString();
-        String sAmount = amount.toPlainString();
-
-        // We have omitted explicit BEGIN/COMMIT statements for
-        // brevity.  Individual statements are treated as implicit
-        // transactions by CockroachDB (see
-        // https://www.cockroachlabs.com/docs/stable/transactions.html#individual-statements).
-
-        String sqlCode = "UPSERT INTO accounts (id, balance) VALUES" +
-                "(?, ((SELECT balance FROM accounts WHERE id = ?) - ?))," +
-                "(?, ((SELECT balance FROM accounts WHERE id = ?) + ?))";
-
-        return runSQL(sqlCode, sFromId, sFromId, sAmount, sToId, sToId, sAmount);
-    }
-
-    /**
-     * Get the account balance for one account.
-     * <p>
-     * We skip using the retry logic in 'runSQL()' here for the
-     * following reasons:
-     * <p>
-     * 1. Since this is a single read ("SELECT"), we don't expect any
-     * transaction conflicts to handle
-     * <p>
-     * 2. We need to return the balance as an integer
-     *
-     * @param id (UUID)
-     * @return balance (int)
-     */
-    public BigDecimal getAccountBalance(UUID id) {
-        BigDecimal balance = BigDecimal.valueOf(0);
-
-        try (Connection connection = ds.getConnection()) {
-
-            // Check the current balance.
-            ResultSet res = connection.createStatement()
-                    .executeQuery(String.format("SELECT balance FROM accounts WHERE id = '%s'", id.toString()));
-            if (!res.next()) {
-                System.out.printf("No users in the table with id %d", id);
-            } else {
-                balance = res.getBigDecimal("balance");
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.getAccountBalance ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-        }
-
-        return balance;
-    }
-
-
     public int bulkInsertRandomCustomerData(int amount) {
 
         int BATCH_SIZE = 128;
@@ -324,7 +242,7 @@ class BenchmarkDAO {
                         //System.out.println(pstmt);
                         sqlLog.add(pstmt.toString());
                         workloadQueryController.add(pstmt.toString());
-                        logger.info(pstmt.toString());
+                        logger.trace(pstmt.toString());
                         pstmt.addBatch();
                     }
                     int[] count = pstmt.executeBatch();
@@ -363,7 +281,7 @@ class BenchmarkDAO {
                 customerRandom.fillStatement(pstmt);
                 sqlLog.add(pstmt.toString());
                 workloadQueryController.add(pstmt.toString());
-                logger.info(pstmt.toString());
+                logger.trace(pstmt.toString());
 
                 pstmt.execute();
                 connection.commit();
@@ -380,6 +298,44 @@ class BenchmarkDAO {
         return customerRandom;
     }
 
+    public boolean bulkInsertCustomersToDB(List<Customer> customerList) {
+        try (Connection connection = ds.getConnection()) {
+
+            // We're managing the commit lifecycle ourselves so we can
+            // control the size of our batch inserts.
+            connection.setAutoCommit(false);
+
+            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO customer (c_id, c_business_name, c_business_info, c_passwd, c_contact_fname, c_contact_lname, c_addr, c_contact_phone, c_contact_email, c_payment_method, c_credit_info, c_discount) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)")) {
+                int counter = 0;
+                for (Customer customer: customerList) {
+                    counter++;
+                    customer.fillStatement(pstmt);
+                    sqlLog.add(pstmt.toString());
+                    workloadQueryController.add(pstmt.toString());
+                    logger.trace(pstmt.toString());
+                    pstmt.addBatch();
+                    if(counter % 100 == 0 || counter == customerList.size()) {
+                        int[] count = pstmt.executeBatch();
+                        logger.trace(String.format("\nBenchmarkDAO.bulkInsertCustomersToDB:\n    '%s'\n", pstmt));
+                        logger.trace(String.format("    => %s row(s) updated in this batch\n", count.length));
+                    }
+                }
+                connection.commit();
+                pstmt.close();
+                connection.close();
+            } catch (SQLException e) {
+                logger.error(String.format("BenchmarkDAO.bulkInsertCustomersToDB ERROR: { state => %s, cause => %s, message => %s }\n",
+                        e.getSQLState(), e.getCause(), e.getMessage()));
+                return false;
+            }
+        } catch (SQLException e) {
+            logger.error(String.format("BenchmarkDAO.bulkInsertCustomersToDB ERROR: { state => %s, cause => %s, message => %s }\n",
+                    e.getSQLState(), e.getCause(), e.getMessage()));
+            return false;
+        }
+        return true;
+    }
+
     public boolean insertCustomerIntoDB(Customer customer) {
         try (Connection connection = ds.getConnection()) {
 
@@ -392,7 +348,7 @@ class BenchmarkDAO {
                 customer.fillStatement(pstmt);
                 sqlLog.add(pstmt.toString());
                 workloadQueryController.add(pstmt.toString());
-                logger.info(pstmt.toString());
+                logger.trace(pstmt.toString());
 
 
                 pstmt.execute();
@@ -421,7 +377,7 @@ class BenchmarkDAO {
                 String sqlStatement = String.format("SELECT * FROM customer ORDER BY random() LIMIT %d;", limit);
                 sqlLog.add(sqlStatement);
                 workloadQueryController.add(sqlStatement);
-                logger.info(sqlStatement);
+                logger.trace(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
                 while (rs.next()) {
@@ -459,7 +415,7 @@ class BenchmarkDAO {
                 String sqlStatement = String.format("SELECT * FROM customer WHERE c_id = '%s';", customer.c_id);
                 sqlLog.add(sqlStatement);
                 workloadQueryController.add(sqlStatement);
-                logger.info(sqlStatement);
+                logger.trace(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
                 while (rs.next()) {
@@ -503,7 +459,7 @@ class BenchmarkDAO {
                 item.fillStatement(pstmt);
                 sqlLog.add(pstmt.toString());
                 workloadQueryController.add(pstmt.toString());
-                logger.info(pstmt.toString());
+                logger.trace(pstmt.toString());
 
                 pstmt.execute();
                 //connection.commit();
@@ -544,7 +500,7 @@ class BenchmarkDAO {
                         //System.out.println(pstmt);
                         sqlLog.add(pstmt.toString());
                         workloadQueryController.add(pstmt.toString());
-                        logger.info(pstmt.toString());
+                        logger.trace(pstmt.toString());
                         pstmt.addBatch();
                     }
                     int[] count = pstmt.executeBatch();
@@ -575,7 +531,7 @@ class BenchmarkDAO {
                 String sqlStatement = String.format("SELECT * FROM item ORDER BY random() LIMIT %d;", limit);
                 sqlLog.add(sqlStatement);
                 workloadQueryController.add(sqlStatement);
-                logger.info(sqlStatement);
+                logger.trace(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
                 while (rs.next()) {
@@ -615,7 +571,7 @@ class BenchmarkDAO {
                 String sqlStatement = String.format("SELECT * FROM item WHERE i_id = '%s'", item.i_id);
                 sqlLog.add(sqlStatement);
                 workloadQueryController.add(sqlStatement);
-                logger.info(sqlStatement);
+                logger.trace(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
                 while (rs.next()) {
@@ -645,6 +601,44 @@ class BenchmarkDAO {
         return itemFromDB;
     }
 
+    public boolean bulkInsertItemsToDB(List<Item> itemList) {
+        try (Connection connection = ds.getConnection()) {
+
+            // We're managing the commit lifecycle ourselves so we can
+            // control the size of our batch inserts.
+            connection.setAutoCommit(false);
+
+            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO item (i_id, i_title, i_pub_date, i_publisher, i_subject, i_desc, i_srp, i_cost, i_isbn, i_page) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
+                int counter = 0;
+                for (Item item: itemList) {
+                    counter++;
+                    item.fillStatement(pstmt);
+                    sqlLog.add(pstmt.toString());
+                    workloadQueryController.add(pstmt.toString());
+                    logger.trace(pstmt.toString());
+                    pstmt.addBatch();
+                    if(counter % 100 == 0 || counter == itemList.size()) {
+                        int[] count = pstmt.executeBatch();
+                        logger.trace(String.format("\nBenchmarkDAO.bulkInsertItemsToDB:\n    '%s'\n", pstmt));
+                        logger.trace(String.format("    => %s row(s) updated in this batch\n", count.length));
+                    }
+                }
+                connection.commit();
+                pstmt.close();
+                connection.close();
+            } catch (SQLException e) {
+                logger.error(String.format("BenchmarkDAO.bulkInsertItemsToDB ERROR: { state => %s, cause => %s, message => %s }\n",
+                        e.getSQLState(), e.getCause(), e.getMessage()));
+                return false;
+            }
+        } catch (SQLException e) {
+            logger.error(String.format("BenchmarkDAO.bulkInsertItemsToDB ERROR: { state => %s, cause => %s, message => %s }\n",
+                    e.getSQLState(), e.getCause(), e.getMessage()));
+            return false;
+        }
+        return true;
+    }
+
 
     public int bulkInsertRandomOrders(int amount, List<Customer> customerList) {
 
@@ -668,7 +662,7 @@ class BenchmarkDAO {
                         //System.out.println(pstmt);
                         sqlLog.add(pstmt.toString());
                         workloadQueryController.add(pstmt.toString());
-                        logger.info(pstmt.toString());
+                        logger.trace(pstmt.toString());
                         pstmt.addBatch();
                     }
                     int[] count = pstmt.executeBatch();
@@ -690,6 +684,44 @@ class BenchmarkDAO {
         return totalNewAccounts;
     }
 
+    public boolean bulkInsertOrdersToDB(List<Order> orderList) {
+        try (Connection connection = ds.getConnection()) {
+
+            // We're managing the commit lifecycle ourselves so we can
+            // control the size of our batch inserts.
+            connection.setAutoCommit(false);
+
+            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO orders (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
+                int counter = 0;
+                for (Order order: orderList) {
+                    counter++;
+                    order.fillStatement(pstmt);
+                    sqlLog.add(pstmt.toString());
+                    workloadQueryController.add(pstmt.toString());
+                    logger.trace(pstmt.toString());
+                    pstmt.addBatch();
+                    if(counter % 100 == 0 || counter == orderList.size()) {
+                        int[] count = pstmt.executeBatch();
+                        logger.trace(String.format("\nBenchmarkDAO.bulkInsertOrdersToDB:\n    '%s'\n", pstmt));
+                        logger.trace(String.format("    => %s row(s) updated in this batch\n", count.length));
+                    }
+                }
+                connection.commit();
+                pstmt.close();
+                connection.close();
+            } catch (SQLException e) {
+                logger.error(String.format("BenchmarkDAO.bulkInsertOrdersToDB ERROR: { state => %s, cause => %s, message => %s }\n",
+                        e.getSQLState(), e.getCause(), e.getMessage()));
+                return false;
+            }
+        } catch (SQLException e) {
+            logger.error(String.format("BenchmarkDAO.bulkInsertOrdersToDB ERROR: { state => %s, cause => %s, message => %s }\n",
+                    e.getSQLState(), e.getCause(), e.getMessage()));
+            return false;
+        }
+        return true;
+    }
+
     public Order insertRandomOrder(Customer customer) {
         Order orderRandom = null;
 
@@ -704,7 +736,7 @@ class BenchmarkDAO {
                 orderRandom.fillStatement(pstmt);
                 sqlLog.add(pstmt.toString());
                 workloadQueryController.add(pstmt.toString());
-                logger.info(pstmt.toString());
+                logger.trace(pstmt.toString());
 
                 pstmt.execute();
                 connection.commit();
@@ -732,7 +764,7 @@ class BenchmarkDAO {
                 order.fillStatement(pstmt);
                 sqlLog.add(pstmt.toString());
                 workloadQueryController.add(pstmt.toString());
-                logger.info(pstmt.toString());
+                logger.trace(pstmt.toString());
 
                 pstmt.execute();
                 //connection.commit();
@@ -760,7 +792,7 @@ class BenchmarkDAO {
                 String sqlStatement = String.format("SELECT * FROM orders ORDER BY random() LIMIT %d;", limit);
                 sqlLog.add(sqlStatement);
                 workloadQueryController.add(sqlStatement);
-                logger.info(sqlStatement);
+                logger.trace(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
                 while (rs.next()) {
@@ -800,7 +832,7 @@ class BenchmarkDAO {
                 String sqlStatement = String.format("SELECT * FROM orders WHERE c_id = '%s'", customerID);
                 sqlLog.add(sqlStatement);
                 workloadQueryController.add(sqlStatement);
-                logger.info(sqlStatement);
+                logger.trace(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
                 while (rs.next()) {
@@ -840,7 +872,7 @@ class BenchmarkDAO {
                 String sqlStatement = String.format("SELECT * FROM orders WHERE c_id = '%s'", customer.c_id);
                 sqlLog.add(sqlStatement);
                 workloadQueryController.add(sqlStatement);
-                logger.info(sqlStatement);
+                logger.trace(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
                 while (rs.next()) {
@@ -880,7 +912,7 @@ class BenchmarkDAO {
                 String sqlStatement = String.format("SELECT * FROM orders WHERE o_id = '%s'", order.o_id);
                 sqlLog.add(sqlStatement);
                 workloadQueryController.add(sqlStatement);
-                logger.info(sqlStatement);
+                logger.trace(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
                 while (rs.next()) {
@@ -935,7 +967,7 @@ class BenchmarkDAO {
                         //System.out.println(pstmt);
                         sqlLog.add(pstmt.toString());
                         workloadQueryController.add(pstmt.toString());
-                        logger.info(pstmt.toString());
+                        logger.trace(pstmt.toString());
                         pstmt.addBatch();
                     }
                     int[] count = pstmt.executeBatch();
@@ -968,7 +1000,7 @@ class BenchmarkDAO {
                     orderLine.fillStatement(pstmt);
                     sqlLog.add(pstmt.toString());
                     workloadQueryController.add(pstmt.toString());
-                    logger.info(pstmt.toString());
+                    logger.trace(pstmt.toString());
                     pstmt.addBatch();
                 }
                 pstmt.executeBatch();
@@ -997,7 +1029,7 @@ class BenchmarkDAO {
                 String sqlStatement = String.format("SELECT * FROM order_line WHERE o_id = '%s'", orderID);
                 sqlLog.add(sqlStatement);
                 workloadQueryController.add(sqlStatement);
-                logger.info(sqlStatement);
+                logger.trace(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
                 while (rs.next()) {
@@ -1037,7 +1069,7 @@ class BenchmarkDAO {
                 String sqlStatement = String.format("SELECT * FROM order_line WHERE o_id = '%s'", order.o_id);
                 sqlLog.add(sqlStatement);
                 workloadQueryController.add(sqlStatement);
-                logger.info(sqlStatement);
+                logger.trace(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
                 while (rs.next()) {
@@ -1070,6 +1102,7 @@ class BenchmarkDAO {
 
 
     public void truncateAllTables() {
+        logger.warn("All tables truncated!");
         try (Connection connection = ds.getConnection()) {
 
             // We're managing the commit lifecycle ourselves so we can
@@ -1083,7 +1116,7 @@ class BenchmarkDAO {
 
                 sqlLog.add(pstmt.toString());
                 workloadQueryController.add(pstmt.toString());
-                logger.info(pstmt.toString());
+                logger.trace(pstmt.toString());
 
                 pstmt.execute();
                 //connection.commit();
@@ -1108,7 +1141,7 @@ class BenchmarkDAO {
                 String sqlStatement = String.format("SELECT * FROM order_line WHERE i_id IN ('%s')", itemList.stream().map(i -> i.i_id).collect(Collectors.joining("','")));
                 sqlLog.add(sqlStatement);
                 workloadQueryController.add(sqlStatement);
-                logger.info(sqlStatement);
+                logger.trace(sqlStatement);
                 ResultSet rs = statement.executeQuery(sqlStatement);
 
                 while (rs.next()) {
@@ -1138,4 +1171,6 @@ class BenchmarkDAO {
         }
         return updatedItemList;
     }
+
+
 }

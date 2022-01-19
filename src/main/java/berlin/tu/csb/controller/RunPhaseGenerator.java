@@ -8,14 +8,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
-import java.util.ArrayList;
 import java.util.List;
 
 
 /**
  * Main class for the basic JDBC example.
  **/
-public class WorkloadGenerator implements Runnable {
+public class RunPhaseGenerator implements Runnable {
 
     long startTime;
     long runTimeInSeconds;
@@ -23,11 +22,11 @@ public class WorkloadGenerator implements Runnable {
     WorkerGeneratorController workerGeneratorController;
     SeededRandomHelper seededRandomHelper;
     PersistenceController persistenceController;
-    Logger logger = LogManager.getLogger(WorkloadGenerator.class);
+    Logger logger = LogManager.getLogger(RunPhaseGenerator.class);
 
-    public WorkloadGenerator(PersistenceController persistenceController, SeededRandomHelper seededRandomHelper, long startTime, long runTimeInSeconds, long endTime) {
+    public RunPhaseGenerator(PersistenceController persistenceController, SeededRandomHelper seededRandomHelper, long startTime, long runTimeInSeconds, long endTime) {
         this.persistenceController = persistenceController;
-        this.workerGeneratorController = new WorkerGeneratorController(seededRandomHelper);
+        this.workerGeneratorController = new WorkerGeneratorController(seededRandomHelper, persistenceController);
         this.seededRandomHelper = seededRandomHelper;
         this.startTime = startTime;
         this.runTimeInSeconds = runTimeInSeconds;
@@ -49,8 +48,8 @@ public class WorkloadGenerator implements Runnable {
                 e.printStackTrace();
             }
         }
-        logger.info("thread started");
-        logger.error("Test error");
+        logger.trace("thread started");
+        //logger.error("Test error");
         while (System.currentTimeMillis() < endTime) {
 
             for(int i = 0; i < 2; i++) {
@@ -108,11 +107,12 @@ public class WorkloadGenerator implements Runnable {
                     }
                     break;
                 default:
+                    // TODO: come up with more use cases
                     logger.error("Default Case reached, something is wrong?");
             }
 
         }
-        logger.info("thread finished");
+        logger.trace("thread finished");
         ThreadContext.clearMap();
     }
 

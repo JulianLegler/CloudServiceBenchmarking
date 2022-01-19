@@ -68,9 +68,13 @@ public class DatabaseController {
         return dao.insertCustomerIntoDB(customer);
     }
 
+    public boolean bulkInsertCustomers(List<Customer> customerList) {return dao.bulkInsertCustomersToDB(customerList);}
+
     public boolean insertItem(Item item) {
         return dao.insertItemIntoDB(item);
     }
+
+    public boolean bulkInsertItems(List<Item> itemList) { return dao.bulkInsertItemsToDB(itemList);}
 
     public boolean insertOrder(Order order) {
         return dao.insertOrderIntoDB(order);
@@ -109,4 +113,5 @@ public class DatabaseController {
     }
 
 
+    public boolean bulkInsertOrders(List<Order> orderList) { return dao.bulkInsertOrdersToDB(orderList); }
 }
