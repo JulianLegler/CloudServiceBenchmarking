@@ -14,4 +14,6 @@ public interface DatabaseTableModel {
     void initWithResultSet(ResultSet resultSet) throws SQLException;
 
     String getSQLInsertString();
+
+    String getBasicSQLSelfSelectString();
 }

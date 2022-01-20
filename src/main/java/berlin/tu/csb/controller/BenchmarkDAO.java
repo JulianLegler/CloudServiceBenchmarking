@@ -263,6 +263,37 @@ class BenchmarkDAO {
         return true;
     }
 
+    public DatabaseTableModel getSingleObjectFromDB(DatabaseTableModel databaseTableModel) {
+        DatabaseTableModel updatedObject = null;
+        try (Connection connection = ds.getConnection()) {
+
+            try {
+                Statement statement = connection.createStatement();
+                String sqlStatement = String.format(databaseTableModel.getBasicSQLSelfSelectString());
+                sqlLog.add(sqlStatement);
+                workloadQueryController.add(sqlStatement);
+                logger.trace(sqlStatement);
+                ResultSet rs = statement.executeQuery(sqlStatement);
+
+                while (rs.next()) {
+                    // get the implementing class of the interfaces object given to this method and create a new object of the same type and fill it afterwards
+                    updatedObject = databaseTableModel.getClass().getDeclaredConstructor().newInstance();
+                    updatedObject.initWithResultSet(rs);
+                }
+                rs.close();
+                statement.close();
+                connection.close();
+            } catch (Exception e) {
+                System.err.println(e.getClass().getName() + ": " + e.getMessage());
+                System.exit(0);
+            }
+        } catch (SQLException e) {
+            System.out.printf("BenchmarkDAO.getSingleObjectFromDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n",
+                    databaseTableModel.getClass(), e.getSQLState(), e.getCause(), e.getMessage());
+        }
+        return updatedObject;
+    }
+
     /**
      * Helper method called by 'testRetryHandling'.  It simply issues
      * a "SELECT 1" inside the transaction to force a retry.  This is
@@ -328,40 +359,7 @@ class BenchmarkDAO {
     }
 
     public Customer getCustomerFromDB(Customer customer) {
-        Customer updatedCustomer = null;
-        try (Connection connection = ds.getConnection()) {
-
-            try {
-                Statement statement = connection.createStatement();
-                String sqlStatement = String.format("SELECT * FROM customer WHERE c_id = '%s';", customer.c_id);
-                sqlLog.add(sqlStatement);
-                workloadQueryController.add(sqlStatement);
-                logger.trace(sqlStatement);
-                ResultSet rs = statement.executeQuery(sqlStatement);
-
-                while (rs.next()) {
-                    updatedCustomer = new Customer();
-                    updatedCustomer.initWithResultSet(rs);
-                }
-
-                rs.close();
-
-                statement.close();
-
-                connection.close();
-
-            } catch (Exception e) {
-
-                System.err.println(e.getClass().getName() + ": " + e.getMessage());
-
-                System.exit(0);
-
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.getCustomerFromDB ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-        }
-        return updatedCustomer;
+        return (Customer) getSingleObjectFromDB(customer);
     }
 
 
@@ -411,42 +409,7 @@ class BenchmarkDAO {
     }
 
     public Item getItemFromDB(Item item) {
-        Item itemFromDB = null;
-        try (Connection connection = ds.getConnection()) {
-
-            try {
-                Statement statement = connection.createStatement();
-                String sqlStatement = String.format("SELECT * FROM item WHERE i_id = '%s'", item.i_id);
-                sqlLog.add(sqlStatement);
-                workloadQueryController.add(sqlStatement);
-                logger.trace(sqlStatement);
-                ResultSet rs = statement.executeQuery(sqlStatement);
-
-                while (rs.next()) {
-
-                    itemFromDB = new Item();
-                    itemFromDB.initWithResultSet(rs);
-
-                }
-
-                rs.close();
-
-                statement.close();
-
-                connection.close();
-
-            } catch (Exception e) {
-
-                System.err.println(e.getClass().getName() + ": " + e.getMessage());
-
-                System.exit(0);
-
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.getRandomCostumers ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-        }
-        return itemFromDB;
+        return (Item) getSingleObjectFromDB(item);
     }
 
     public boolean bulkInsertItemsToDB(List<Item> itemList) {
@@ -583,86 +546,15 @@ class BenchmarkDAO {
     }
 
     public Order getOrderOfCustomerFromDB(Order order) {
-        Order updatedOrder = null;
-        try (Connection connection = ds.getConnection()) {
-
-            try {
-                Statement statement = connection.createStatement();
-                String sqlStatement = String.format("SELECT * FROM orders WHERE o_id = '%s'", order.o_id);
-                sqlLog.add(sqlStatement);
-                workloadQueryController.add(sqlStatement);
-                logger.trace(sqlStatement);
-                ResultSet rs = statement.executeQuery(sqlStatement);
-
-                while (rs.next()) {
-
-                    updatedOrder = new Order();
-                    updatedOrder.initWithResultSet(rs);
-
-                }
-
-                rs.close();
-
-                statement.close();
-
-                connection.close();
-
-            } catch (Exception e) {
-
-                System.err.println(e.getClass().getName() + ": " + e.getMessage());
-
-                System.exit(0);
-
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.getOrderOfCustomerFromDB ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-        }
-        return updatedOrder;
+        return (Order) getSingleObjectFromDB(order);
     }
 
     public boolean insertOrderLinesIntoDB(List<OrderLine> orderLineList) {
         return bulkInsertObjectsToDB(orderLineList);
     }
 
-    public List<OrderLine> getOrderLinesFromOrder(String orderID) {
-        ArrayList<OrderLine> orderLines = new ArrayList<>();
-        try (Connection connection = ds.getConnection()) {
-
-            try {
-                Statement statement = connection.createStatement();
-                String sqlStatement = String.format("SELECT * FROM order_line WHERE o_id = '%s'", orderID);
-                sqlLog.add(sqlStatement);
-                workloadQueryController.add(sqlStatement);
-                logger.trace(sqlStatement);
-                ResultSet rs = statement.executeQuery(sqlStatement);
-
-                while (rs.next()) {
-
-                    OrderLine orderLine = new OrderLine();
-                    orderLine.initWithResultSet(rs);
-                    orderLines.add(orderLine);
-
-                }
-
-                rs.close();
-
-                statement.close();
-
-                connection.close();
-
-            } catch (Exception e) {
-
-                System.err.println(e.getClass().getName() + ": " + e.getMessage());
-
-                System.exit(0);
-
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.getOrderLinesFromOrder ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-        }
-        return orderLines;
+    public OrderLine getOrderLineFromDB(OrderLine orderLine) {
+        return (OrderLine) getSingleObjectFromDB(orderLine);
     }
 
     public List<OrderLine> getOrderLinesOfOrderFromDB(Order order) {

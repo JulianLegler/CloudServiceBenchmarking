@@ -77,6 +77,11 @@ public class Customer implements DatabaseTableModel {
     }
 
     @Override
+    public String getBasicSQLSelfSelectString() {
+        return String.format("SELECT * FROM customer WHERE c_id = '%s';", c_id);
+    }
+
+    @Override
     public String toString() {
         return "Customer{" +
                 "c_id='" + c_id + '\'' +

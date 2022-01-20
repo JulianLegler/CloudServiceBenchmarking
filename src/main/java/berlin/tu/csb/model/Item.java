@@ -70,6 +70,11 @@ public class Item implements DatabaseTableModel{
     }
 
     @Override
+    public String getBasicSQLSelfSelectString() {
+        return String.format("SELECT * FROM item WHERE i_id = '%s'", i_id);
+    }
+
+    @Override
     public String toString() {
         return "Item{" +
                 "i_id='" + i_id + '\'' +

@@ -54,6 +54,11 @@ public class OrderLine implements DatabaseTableModel{
     }
 
     @Override
+    public String getBasicSQLSelfSelectString() {
+        return String.format("SELECT * FROM order_line WHERE ol_id = '%s'", ol_id);
+    }
+
+    @Override
     public String toString() {
         return "OrderLine{" +
                 "ol_id='" + ol_id + '\'' +

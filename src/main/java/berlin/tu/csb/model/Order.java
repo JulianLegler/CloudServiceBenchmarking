@@ -71,6 +71,11 @@ public class Order implements DatabaseTableModel{
     }
 
     @Override
+    public String getBasicSQLSelfSelectString() {
+        return String.format("SELECT * FROM orders WHERE o_id = '%s'", o_id);
+    }
+
+    @Override
     public String toString() {
         return "Orders{" +
                 "o_id='" + o_id + '\'' +
