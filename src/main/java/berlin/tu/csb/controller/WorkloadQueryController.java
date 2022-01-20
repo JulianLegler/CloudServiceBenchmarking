@@ -10,12 +10,14 @@ public class WorkloadQueryController {
     long workloadQueryIncrementalId = 0;
     long workloadContextId;
 
-    public void add(String sqlString) {
+    public void add(String sqlString, String timestampBeforeCommit, String timestampAfterCommit) {
         workloadContextId = Thread.currentThread().getId();
         WorkloadQuery workloadQuery = new WorkloadQuery();
         workloadQuery.sqlString = sqlString;
         workloadQuery.workloadContextId = workloadContextId;
         workloadQuery.executingOrderId = workloadQueryIncrementalId++;
+        workloadQuery.timestampBeforeCommit = timestampBeforeCommit;
+        workloadQuery.timestampAfterCommit = timestampAfterCommit;
 
         workloadQueryList.add(workloadQuery);
     }

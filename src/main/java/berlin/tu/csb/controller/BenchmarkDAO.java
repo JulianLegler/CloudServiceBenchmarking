@@ -9,7 +9,9 @@ import org.apache.logging.log4j.Logger;
 import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.Date;
 import java.util.stream.Collectors;
 
 /**
@@ -28,6 +30,7 @@ class BenchmarkDAO {
     private static final String RETRY_SQL_STATE = "40001";
     private static final boolean FORCE_RETRY = false;
     private static final int batchSize = 100;
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH.mm.ss.SSS");
 
     SeededRandomHelper seededRandomHelper = new SeededRandomHelper();
 
@@ -206,10 +209,19 @@ class BenchmarkDAO {
 
                 databaseTableModel.fillStatement(pstmt);
                 sqlLog.add(pstmt.toString());
-                workloadQueryController.add(pstmt.toString());
                 logger.trace(pstmt.toString());
 
+
+                Date now = new Date(System.currentTimeMillis());
+                String timestampBeforeCommit = sdf.format(now);
+
                 pstmt.execute();
+
+                now = new Date(System.currentTimeMillis());
+                String timestampAfterCommit = sdf.format(now);
+
+                workloadQueryController.add(pstmt.toString(), timestampBeforeCommit, timestampAfterCommit);
+
                 pstmt.close();
                 connection.close();
             } catch (SQLException e) {
@@ -238,7 +250,7 @@ class BenchmarkDAO {
                     counter++;
                     databaseTableModel.fillStatement(pstmt);
                     sqlLog.add(pstmt.toString());
-                    workloadQueryController.add(pstmt.toString());
+                    workloadQueryController.add(pstmt.toString(), "", "");
                     logger.trace(pstmt.toString());
                     pstmt.addBatch();
                     if (counter % batchSize == 0 || counter == databaseTableModelList.size()) {
@@ -271,9 +283,19 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format(databaseTableModel.getBasicSQLSelfSelectString());
                 sqlLog.add(sqlStatement);
-                workloadQueryController.add(sqlStatement);
                 logger.trace(sqlStatement);
+
+                Date now = new Date(System.currentTimeMillis());
+                String timestampBeforeCommit = sdf.format(now);
+
                 ResultSet rs = statement.executeQuery(sqlStatement);
+
+                now = new Date(System.currentTimeMillis());
+                String timestampAfterCommit = sdf.format(now);
+
+                workloadQueryController.add(sqlStatement, timestampBeforeCommit, timestampAfterCommit);
+
+
 
                 while (rs.next()) {
                     // get the implementing class of the interfaces object given to this method and create a new object of the same type and fill it afterwards
@@ -304,9 +326,17 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format(databaseTableModel.getBasicSQLAllSelectString());
                 sqlLog.add(sqlStatement);
-                workloadQueryController.add(sqlStatement);
                 logger.trace(sqlStatement);
+
+                Date now = new Date(System.currentTimeMillis());
+                String timestampBeforeCommit = sdf.format(now);
+
                 ResultSet rs = statement.executeQuery(sqlStatement);
+
+                now = new Date(System.currentTimeMillis());
+                String timestampAfterCommit = sdf.format(now);
+
+                workloadQueryController.add(sqlStatement, timestampBeforeCommit, timestampAfterCommit);
 
                 while (rs.next()) {
                     // get the implementing class of the interfaces object given to this method and create a new object of the same type and fill it afterwards
@@ -372,9 +402,18 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format("SELECT * FROM item ORDER BY random() LIMIT %d;", limit);
                 sqlLog.add(sqlStatement);
-                workloadQueryController.add(sqlStatement);
                 logger.trace(sqlStatement);
+
+
+                Date now = new Date(System.currentTimeMillis());
+                String timestampBeforeCommit = sdf.format(now);
+
                 ResultSet rs = statement.executeQuery(sqlStatement);
+
+                now = new Date(System.currentTimeMillis());
+                String timestampAfterCommit = sdf.format(now);
+
+                workloadQueryController.add(sqlStatement, timestampBeforeCommit, timestampAfterCommit);
 
                 while (rs.next()) {
 
@@ -429,9 +468,18 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format("SELECT * FROM orders WHERE c_id = '%s'", customerID);
                 sqlLog.add(sqlStatement);
-                workloadQueryController.add(sqlStatement);
+
                 logger.trace(sqlStatement);
+
+                Date now = new Date(System.currentTimeMillis());
+                String timestampBeforeCommit = sdf.format(now);
+
                 ResultSet rs = statement.executeQuery(sqlStatement);
+
+                now = new Date(System.currentTimeMillis());
+                String timestampAfterCommit = sdf.format(now);
+
+                workloadQueryController.add(sqlStatement, timestampBeforeCommit, timestampAfterCommit);
 
                 while (rs.next()) {
 
@@ -469,9 +517,18 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format("SELECT * FROM orders WHERE c_id = '%s'", customer.c_id);
                 sqlLog.add(sqlStatement);
-                workloadQueryController.add(sqlStatement);
+
                 logger.trace(sqlStatement);
+
+                Date now = new Date(System.currentTimeMillis());
+                String timestampBeforeCommit = sdf.format(now);
+
                 ResultSet rs = statement.executeQuery(sqlStatement);
+
+                now = new Date(System.currentTimeMillis());
+                String timestampAfterCommit = sdf.format(now);
+
+                workloadQueryController.add(sqlStatement, timestampBeforeCommit, timestampAfterCommit);
 
                 while (rs.next()) {
 
@@ -521,9 +578,18 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format("SELECT * FROM order_line WHERE o_id = '%s'", order.o_id);
                 sqlLog.add(sqlStatement);
-                workloadQueryController.add(sqlStatement);
                 logger.trace(sqlStatement);
+
+
+                Date now = new Date(System.currentTimeMillis());
+                String timestampBeforeCommit = sdf.format(now);
+
                 ResultSet rs = statement.executeQuery(sqlStatement);
+
+                now = new Date(System.currentTimeMillis());
+                String timestampAfterCommit = sdf.format(now);
+
+                workloadQueryController.add(sqlStatement, timestampBeforeCommit, timestampAfterCommit);
 
                 while (rs.next()) {
 
@@ -568,10 +634,18 @@ class BenchmarkDAO {
             try (PreparedStatement pstmt = connection.prepareStatement("TRUNCATE TABLE customer CASCADE; TRUNCATE TABLE orders CASCADE; TRUNCATE TABLE item CASCADE; TRUNCATE TABLE order_line CASCADE;")) {
 
                 sqlLog.add(pstmt.toString());
-                workloadQueryController.add(pstmt.toString());
+
                 logger.trace(pstmt.toString());
 
+                Date now = new Date(System.currentTimeMillis());
+                String timestampBeforeCommit = sdf.format(now);
+
                 pstmt.execute();
+
+                now = new Date(System.currentTimeMillis());
+                String timestampAfterCommit = sdf.format(now);
+
+                workloadQueryController.add(pstmt.toString(), timestampBeforeCommit, timestampAfterCommit);
                 //connection.commit();
                 pstmt.close();
                 connection.close();
@@ -593,9 +667,19 @@ class BenchmarkDAO {
                 Statement statement = connection.createStatement();
                 String sqlStatement = String.format("SELECT * FROM item WHERE i_id IN ('%s')", itemList.stream().map(i -> i.i_id).collect(Collectors.joining("','")));
                 sqlLog.add(sqlStatement);
-                workloadQueryController.add(sqlStatement);
+
                 logger.trace(sqlStatement);
+
+
+                Date now = new Date(System.currentTimeMillis());
+                String timestampBeforeCommit = sdf.format(now);
+
                 ResultSet rs = statement.executeQuery(sqlStatement);
+
+                now = new Date(System.currentTimeMillis());
+                String timestampAfterCommit = sdf.format(now);
+
+                workloadQueryController.add(sqlStatement, timestampBeforeCommit, timestampAfterCommit);
 
                 while (rs.next()) {
 
