@@ -8,7 +8,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.UUID;
 
-public class Item {
+public class Item implements DatabaseTableModel{
     public String i_id;
     public String i_title;
     public Timestamp i_pub_date;
@@ -24,7 +24,7 @@ public class Item {
 
     }
 
-    public Item setRandomValues(SeededRandomHelper seededRandomHelper) {
+    public DatabaseTableModel setRandomValues(SeededRandomHelper seededRandomHelper) {
         i_id = UUID.randomUUID().toString();
         i_title = seededRandomHelper.getStringWithLength(5, 60);
         i_pub_date = new Timestamp(seededRandomHelper.getLongBetween(1, System.currentTimeMillis())); //LocalDateTime.of(RandomUtils.nextInt(1900, 2022), RandomUtils.nextInt(1, 12), RandomUtils.nextInt(1, 30), 0, 0, 0);
@@ -62,6 +62,11 @@ public class Item {
         i_cost = resultSet.getFloat("i_cost");
         i_isbn = resultSet.getString("i_isbn");
         i_page = resultSet.getInt("i_page");
+    }
+
+    @Override
+    public String getSQLInsertString() {
+        return "INSERT INTO item (i_id, i_title, i_pub_date, i_publisher, i_subject, i_desc, i_srp, i_cost, i_isbn, i_page) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)";
     }
 
     @Override

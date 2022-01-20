@@ -9,7 +9,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.UUID;
 
-public class Order {
+public class Order implements DatabaseTableModel{
     public String o_id;
     public String c_id;
     public Timestamp o_date;
@@ -25,9 +25,9 @@ public class Order {
 
     }
 
-    public Order setRandomValues(String fk_c_id, SeededRandomHelper seededRandomHelper) {
+    public DatabaseTableModel setRandomValues(SeededRandomHelper seededRandomHelper) {
         o_id = UUID.randomUUID().toString();
-        c_id = fk_c_id;
+        c_id = null;
         o_date = new Timestamp(seededRandomHelper.getLongBetween(1577833200000L, 1641141846417L)); //2020 - now
         o_sub_total = seededRandomHelper.getFloatBetween(5f, 12000f);
         o_tax = o_sub_total*0.19f;
@@ -63,6 +63,11 @@ public class Order {
         o_ship_date = resultSet.getTimestamp("o_ship_date");
         o_ship_addr = resultSet.getString("o_ship_addr");
         o_status = resultSet.getString("o_status");
+    }
+
+    @Override
+    public String getSQLInsertString() {
+        return "INSERT INTO orders (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)";
     }
 
     @Override

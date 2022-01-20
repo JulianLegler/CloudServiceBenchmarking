@@ -7,7 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
 
-public class Customer {
+public class Customer implements DatabaseTableModel {
     public String c_id;
     public String c_business_name;
     public String c_business_info;
@@ -22,7 +22,8 @@ public class Customer {
     public float c_discount;
 
 
-    public Customer setRandomCustomerValues(SeededRandomHelper seededRandomHelper) {
+    @Override
+    public DatabaseTableModel setRandomValues(SeededRandomHelper seededRandomHelper) {
         c_id = UUID.randomUUID().toString();
         c_business_name = seededRandomHelper.getStringWithLength(5, 20);
         c_business_info = seededRandomHelper.getStringWithLength(20, 100);
@@ -38,6 +39,7 @@ public class Customer {
         return this;
     }
 
+    @Override
     public void fillStatement(PreparedStatement preparedStatement) throws SQLException {
         preparedStatement.setString(1, c_id);
         preparedStatement.setString(2, c_business_name);
@@ -53,6 +55,7 @@ public class Customer {
         preparedStatement.setFloat(12, c_discount);
     }
 
+    @Override
     public void initWithResultSet(ResultSet resultSet) throws SQLException {
         c_id = resultSet.getString("c_id");
         c_business_name = resultSet.getString("c_business_name");
@@ -66,6 +69,11 @@ public class Customer {
         c_payment_method = resultSet.getString("c_payment_method");
         c_credit_info = resultSet.getString("c_credit_info");
         c_discount = resultSet.getFloat("c_discount");
+    }
+
+    @Override
+    public String getSQLInsertString() {
+        return "INSERT INTO customer (c_id, c_business_name, c_business_info, c_passwd, c_contact_fname, c_contact_lname, c_addr, c_contact_phone, c_contact_email, c_payment_method, c_credit_info, c_discount) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)";
     }
 
     @Override

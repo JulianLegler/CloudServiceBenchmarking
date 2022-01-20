@@ -30,8 +30,8 @@ public class MainController {
         }
 
         BenchmarkConfig benchmarkConfig = new BenchmarkConfig();
-        benchmarkConfig.dbCustomerInsertsLoadPhase = 1000 / threadCount;
-        benchmarkConfig.dbItemInsertsLoadPhase = 1000 / threadCount;
+        benchmarkConfig.dbCustomerInsertsLoadPhase = 100 / threadCount;
+        benchmarkConfig.dbItemInsertsLoadPhase = 100 / threadCount;
         benchmarkConfig.dbOrderInsertsLoadPhase = (long)(benchmarkConfig.dbCustomerInsertsLoadPhase * 1.2);
 
         String[] serverAddresses = content.split(",");
@@ -44,7 +44,7 @@ public class MainController {
 
 
 
-        // runLoadPhase(serverAddresses, benchmarkConfig);
+        runLoadPhase(serverAddresses, benchmarkConfig);
         runRunPhase(serverAddresses, benchmarkConfig);
 
     }

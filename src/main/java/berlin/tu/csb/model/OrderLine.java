@@ -7,7 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
 
-public class OrderLine {
+public class OrderLine implements DatabaseTableModel{
     public String ol_id;
     public String o_id;
     public String i_id;
@@ -19,10 +19,10 @@ public class OrderLine {
 
     }
 
-    public OrderLine setRandomValues(String fk_o_id, String fk_i_id, SeededRandomHelper seededRandomHelper) {
+    public OrderLine setRandomValues(SeededRandomHelper seededRandomHelper) {
         ol_id = UUID.randomUUID().toString();
-        o_id = fk_o_id;
-        i_id = fk_i_id;
+        o_id = null;
+        i_id = null;
         ol_qty = seededRandomHelper.getIntBetween(1, 100);
         ol_discount = seededRandomHelper.getFloatBetween(0, 100);
         ol_status = seededRandomHelper.getStringWithLength(2, 16);
@@ -46,6 +46,11 @@ public class OrderLine {
         ol_qty = resultSet.getInt("ol_qty");
         ol_discount = resultSet.getFloat("ol_discount");
         ol_status = resultSet.getString("ol_status");
+    }
+
+    @Override
+    public String getSQLInsertString() {
+        return "INSERT INTO order_line (ol_id, o_id, i_id, ol_qty, ol_discount, ol_status) VALUES (?, ?, ?, ?, ?, ? )";
     }
 
     @Override

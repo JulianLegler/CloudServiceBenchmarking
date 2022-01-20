@@ -3,3 +3,4 @@
 /terraform/public_ip.csv
 /workload/
 /workload
+/terraform/.terraform.lock.hcl

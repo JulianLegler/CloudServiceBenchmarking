@@ -18,15 +18,17 @@ public class WorkerGeneratorController {
     }
 
     public Customer getNewCustomerModelWithRandomData() {
-        return new Customer().setRandomCustomerValues(seededRandomHelper);
+        return (Customer) new Customer().setRandomValues(seededRandomHelper);
     }
 
     public Order getNewOrderModelWithRandomData(Customer customer) {
-        return new Order().setRandomValues(customer.c_id, seededRandomHelper);
+        Order order = (Order) new Order().setRandomValues(seededRandomHelper);
+        order.c_id = customer.c_id;
+        return order;
     }
 
     public Item getNewItemModelWithRandomData() {
-        return new Item().setRandomValues(seededRandomHelper);
+        return (Item) new Item().setRandomValues(seededRandomHelper);
     }
 
     public List<Item> getNewItemModelListWithRandomData(int itemListSize) {
@@ -40,7 +42,9 @@ public class WorkerGeneratorController {
     public List<OrderLine> getNewOrderLineModelList(Order order, List<Item> itemList) {
         List<OrderLine> orderLineList = new ArrayList<>();
         for (Item item:itemList) {
-            OrderLine orderLine = new OrderLine().setRandomValues(order.o_id, item.i_id, seededRandomHelper);
+            OrderLine orderLine = new OrderLine().setRandomValues(seededRandomHelper);
+            orderLine.i_id = item.i_id;
+            orderLine.o_id = order.o_id;
             orderLineList.add(orderLine);
         }
         return orderLineList;

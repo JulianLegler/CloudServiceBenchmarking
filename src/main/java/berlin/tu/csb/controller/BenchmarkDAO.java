@@ -1,9 +1,6 @@
 package berlin.tu.csb.controller;
 
-import berlin.tu.csb.model.Customer;
-import berlin.tu.csb.model.Item;
-import berlin.tu.csb.model.Order;
-import berlin.tu.csb.model.OrderLine;
+import berlin.tu.csb.model.*;
 import com.zaxxer.hikari.pool.HikariProxyPreparedStatement;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.logging.log4j.LogManager;
@@ -30,6 +27,7 @@ class BenchmarkDAO {
     private static final int MAX_RETRY_COUNT = 3;
     private static final String RETRY_SQL_STATE = "40001";
     private static final boolean FORCE_RETRY = false;
+    private static final int batchSize = 100;
 
     SeededRandomHelper seededRandomHelper = new SeededRandomHelper();
 
@@ -202,6 +200,69 @@ class BenchmarkDAO {
         return rv;
     }
 
+    public boolean insertSingleObjectToDB(DatabaseTableModel databaseTableModel) {
+        try (Connection connection = ds.getConnection()) {
+            try (PreparedStatement pstmt = connection.prepareStatement(databaseTableModel.getSQLInsertString())) {
+
+                databaseTableModel.fillStatement(pstmt);
+                sqlLog.add(pstmt.toString());
+                workloadQueryController.add(pstmt.toString());
+                logger.trace(pstmt.toString());
+
+                pstmt.execute();
+                pstmt.close();
+                connection.close();
+            } catch (SQLException e) {
+                System.out.printf("BenchmarkDAO.insertSingleObjectIntoDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n",
+                        databaseTableModel.getClass(), e.getSQLState(), e.getCause(), e.getMessage());
+                return false;
+            }
+        } catch (SQLException e) {
+            System.out.printf("BenchmarkDAO.insertSingleObjectIntoDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n",
+                    databaseTableModel.getClass(), e.getSQLState(), e.getCause(), e.getMessage());
+            return false;
+        }
+        return true;
+    }
+
+    public boolean bulkInsertObjectsToDB(List<? extends DatabaseTableModel> databaseTableModelList) {
+        try (Connection connection = ds.getConnection()) {
+
+            // We're managing the commit lifecycle ourselves so we can
+            // control the size of our batch inserts.
+            connection.setAutoCommit(false);
+
+            try (PreparedStatement pstmt = connection.prepareStatement(databaseTableModelList.get(0).getSQLInsertString())) {
+                int counter = 0;
+                for (DatabaseTableModel databaseTableModel : databaseTableModelList) {
+                    counter++;
+                    databaseTableModel.fillStatement(pstmt);
+                    sqlLog.add(pstmt.toString());
+                    workloadQueryController.add(pstmt.toString());
+                    logger.trace(pstmt.toString());
+                    pstmt.addBatch();
+                    if (counter % batchSize == 0 || counter == databaseTableModelList.size()) {
+                        int[] count = pstmt.executeBatch();
+                        logger.trace(String.format("\nBenchmarkDAO.bulkInsertObjectsToDB:\n    '%s'\n", pstmt));
+                        logger.trace(String.format("    => %s row(s) updated in this batch\n", count.length));
+                    }
+                }
+                connection.commit();
+                pstmt.close();
+                connection.close();
+            } catch (SQLException e) {
+                logger.error(String.format("BenchmarkDAO.bulkInsertObjectsToDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n",
+                        databaseTableModelList.get(0).getClass(),e.getSQLState(), e.getCause(), e.getMessage()));
+                return false;
+            }
+        } catch (SQLException e) {
+            logger.error(String.format("BenchmarkDAO.bulkInsertObjectsToDB ERROR: { state => %s, cause => %s, message => %s }\n",
+                    databaseTableModelList.get(0).getClass(), e.getSQLState(), e.getCause(), e.getMessage()));
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Helper method called by 'testRetryHandling'.  It simply issues
      * a "SELECT 1" inside the transaction to force a retry.  This is
@@ -220,152 +281,12 @@ class BenchmarkDAO {
         }
     }
 
-    public int bulkInsertRandomCustomerData(int amount) {
-
-        int BATCH_SIZE = 128;
-        int totalNewAccounts = 0;
-
-        try (Connection connection = ds.getConnection()) {
-
-            // We're managing the commit lifecycle ourselves so we can
-            // control the size of our batch inserts.
-            connection.setAutoCommit(false);
-
-            // In this example we are adding 500 rows to the database,
-            // but it could be any number.  What's important is that
-            // the batch size is 128.
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO customer (c_id, c_business_name, c_business_info, c_passwd, c_contact_fname, c_contact_lname, c_addr, c_contact_phone, c_contact_email, c_payment_method, c_credit_info, c_discount) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)")) {
-                for (int i = 0; i <= (amount / BATCH_SIZE); i++) {
-                    for (int j = 0; j < BATCH_SIZE; j++) {
-                        Customer customerRandom = new Customer().setRandomCustomerValues(seededRandomHelper);
-                        customerRandom.fillStatement(pstmt);
-                        //System.out.println(pstmt);
-                        sqlLog.add(pstmt.toString());
-                        workloadQueryController.add(pstmt.toString());
-                        logger.trace(pstmt.toString());
-                        pstmt.addBatch();
-                    }
-                    int[] count = pstmt.executeBatch();
-                    totalNewAccounts += count.length;
-                    System.out.printf("\nBenchmarkDAO.bulkInsertRandomCustomerData:\n    '%s'\n", pstmt);
-                    System.out.printf("    => %s row(s) updated in this batch\n", count.length);
-                }
-                connection.commit();
-                pstmt.close();
-                connection.close();
-            } catch (SQLException e) {
-                System.out.printf("BenchmarkDAO.bulkInsertRandomCustomerData ERROR: { state => %s, cause => %s, message => %s }\n",
-                        e.getSQLState(), e.getCause(), e.getMessage());
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.bulkInsertRandomCustomerData ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-        }
-        return totalNewAccounts;
-    }
-
-    public Customer insertRandomCustomer() {
-        Customer customerRandom = null;
-        try (Connection connection = ds.getConnection()) {
-
-            // We're managing the commit lifecycle ourselves so we can
-            // control the size of our batch inserts.
-            connection.setAutoCommit(false);
-
-            // In this example we are adding 500 rows to the database,
-            // but it could be any number.  What's important is that
-            // the batch size is 128.
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO customer (c_id, c_business_name, c_business_info, c_passwd, c_contact_fname, c_contact_lname, c_addr, c_contact_phone, c_contact_email, c_payment_method, c_credit_info, c_discount) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)")) {
-
-                customerRandom = new Customer().setRandomCustomerValues(seededRandomHelper);
-                customerRandom.fillStatement(pstmt);
-                sqlLog.add(pstmt.toString());
-                workloadQueryController.add(pstmt.toString());
-                logger.trace(pstmt.toString());
-
-                pstmt.execute();
-                connection.commit();
-                pstmt.close();
-                connection.close();
-            } catch (SQLException e) {
-                System.out.printf("BenchmarkDAO.insertRandomCustomer ERROR: { state => %s, cause => %s, message => %s }\n",
-                        e.getSQLState(), e.getCause(), e.getMessage());
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.insertRandomCustomer ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-        }
-        return customerRandom;
-    }
-
     public boolean bulkInsertCustomersToDB(List<Customer> customerList) {
-        try (Connection connection = ds.getConnection()) {
-
-            // We're managing the commit lifecycle ourselves so we can
-            // control the size of our batch inserts.
-            connection.setAutoCommit(false);
-
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO customer (c_id, c_business_name, c_business_info, c_passwd, c_contact_fname, c_contact_lname, c_addr, c_contact_phone, c_contact_email, c_payment_method, c_credit_info, c_discount) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)")) {
-                int counter = 0;
-                for (Customer customer : customerList) {
-                    counter++;
-                    customer.fillStatement(pstmt);
-                    sqlLog.add(pstmt.toString());
-                    workloadQueryController.add(pstmt.toString());
-                    logger.trace(pstmt.toString());
-                    pstmt.addBatch();
-                    if (counter % 100 == 0 || counter == customerList.size()) {
-                        int[] count = pstmt.executeBatch();
-                        logger.trace(String.format("\nBenchmarkDAO.bulkInsertCustomersToDB:\n    '%s'\n", pstmt));
-                        logger.trace(String.format("    => %s row(s) updated in this batch\n", count.length));
-                    }
-                }
-                connection.commit();
-                pstmt.close();
-                connection.close();
-            } catch (SQLException e) {
-                logger.error(String.format("BenchmarkDAO.bulkInsertCustomersToDB ERROR: { state => %s, cause => %s, message => %s }\n",
-                        e.getSQLState(), e.getCause(), e.getMessage()));
-                return false;
-            }
-        } catch (SQLException e) {
-            logger.error(String.format("BenchmarkDAO.bulkInsertCustomersToDB ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage()));
-            return false;
-        }
-        return true;
+        return bulkInsertObjectsToDB(customerList);
     }
 
     public boolean insertCustomerIntoDB(Customer customer) {
-        try (Connection connection = ds.getConnection()) {
-
-            // We're managing the commit lifecycle ourselves so we can
-            // control the size of our batch inserts.
-            //connection.setAutoCommit(false);
-
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO customer (c_id, c_business_name, c_business_info, c_passwd, c_contact_fname, c_contact_lname, c_addr, c_contact_phone, c_contact_email, c_payment_method, c_credit_info, c_discount) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?)")) {
-
-                customer.fillStatement(pstmt);
-                sqlLog.add(pstmt.toString());
-                workloadQueryController.add(pstmt.toString());
-                logger.trace(pstmt.toString());
-
-
-                pstmt.execute();
-                //connection.commit();
-                pstmt.close();
-                connection.close();
-            } catch (SQLException e) {
-                System.out.printf("BenchmarkDAO.insertCustomerIntoDB ERROR: { state => %s, cause => %s, message => %s }\n",
-                        e.getSQLState(), e.getCause(), e.getMessage());
-                return false;
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.insertCustomerIntoDB ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-            return false;
-        }
-        return true;
+        return insertSingleObjectToDB(customer);
     }
 
     public List<Customer> getRandomCustomers(int limit) {
@@ -445,82 +366,9 @@ class BenchmarkDAO {
 
 
     public boolean insertItemIntoDB(Item item) {
-        try (Connection connection = ds.getConnection()) {
-
-            // We're managing the commit lifecycle ourselves so we can
-            // control the size of our batch inserts.
-            //connection.setAutoCommit(false);
-
-            // In this example we are adding 500 rows to the database,
-            // but it could be any number.  What's important is that
-            // the batch size is 128.
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO item (i_id, i_title, i_pub_date, i_publisher, i_subject, i_desc, i_srp, i_cost, i_isbn, i_page) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
-
-                item.fillStatement(pstmt);
-                sqlLog.add(pstmt.toString());
-                workloadQueryController.add(pstmt.toString());
-                logger.trace(pstmt.toString());
-
-                pstmt.execute();
-                //connection.commit();
-                pstmt.close();
-                connection.close();
-            } catch (SQLException e) {
-                System.out.printf("BenchmarkDAO.insertItem ERROR: { state => %s, cause => %s, message => %s }\n",
-                        e.getSQLState(), e.getCause(), e.getMessage());
-                return false;
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.insertItem ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-            return false;
-        }
-        return true;
+        return insertSingleObjectToDB(item);
     }
 
-    public int bulkInsertRandomItemData(int amount) {
-
-        int BATCH_SIZE = 128;
-        int totalNewAccounts = 0;
-
-        try (Connection connection = ds.getConnection()) {
-
-            // We're managing the commit lifecycle ourselves so we can
-            // control the size of our batch inserts.
-            connection.setAutoCommit(false);
-
-            // In this example we are adding 500 rows to the database,
-            // but it could be any number.  What's important is that
-            // the batch size is 128.
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO item (i_id, i_title, i_pub_date, i_publisher, i_subject, i_desc, i_srp, i_cost, i_isbn, i_page) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
-                for (int i = 0; i <= (amount / BATCH_SIZE); i++) {
-                    for (int j = 0; j < BATCH_SIZE; j++) {
-                        Item itemRandom = new Item().setRandomValues(seededRandomHelper);
-                        itemRandom.fillStatement(pstmt);
-                        //System.out.println(pstmt);
-                        sqlLog.add(pstmt.toString());
-                        workloadQueryController.add(pstmt.toString());
-                        logger.trace(pstmt.toString());
-                        pstmt.addBatch();
-                    }
-                    int[] count = pstmt.executeBatch();
-                    totalNewAccounts += count.length;
-                    System.out.printf("\nBenchmarkDAO.bulkInsertRandomItemData:\n    '%s'\n", pstmt);
-                    System.out.printf("    => %s row(s) updated in this batch\n", count.length);
-                }
-                connection.commit();
-                pstmt.close();
-                connection.close();
-            } catch (SQLException e) {
-                System.out.printf("BenchmarkDAO.bulkInsertRandomItemData ERROR: { state => %s, cause => %s, message => %s }\n",
-                        e.getSQLState(), e.getCause(), e.getMessage());
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.bulkInsertRandomItemData ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-        }
-        return totalNewAccounts;
-    }
 
     public List<Item> getRandomItems(int limit) {
         ArrayList<Item> randomItems = new ArrayList<>();
@@ -602,185 +450,16 @@ class BenchmarkDAO {
     }
 
     public boolean bulkInsertItemsToDB(List<Item> itemList) {
-        try (Connection connection = ds.getConnection()) {
-
-            // We're managing the commit lifecycle ourselves so we can
-            // control the size of our batch inserts.
-            connection.setAutoCommit(false);
-
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO item (i_id, i_title, i_pub_date, i_publisher, i_subject, i_desc, i_srp, i_cost, i_isbn, i_page) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
-                int counter = 0;
-                for (Item item : itemList) {
-                    counter++;
-                    item.fillStatement(pstmt);
-                    sqlLog.add(pstmt.toString());
-                    workloadQueryController.add(pstmt.toString());
-                    logger.trace(pstmt.toString());
-                    pstmt.addBatch();
-                    if (counter % 100 == 0 || counter == itemList.size()) {
-                        int[] count = pstmt.executeBatch();
-                        logger.trace(String.format("\nBenchmarkDAO.bulkInsertItemsToDB:\n    '%s'\n", pstmt));
-                        logger.trace(String.format("    => %s row(s) updated in this batch\n", count.length));
-                    }
-                }
-                connection.commit();
-                pstmt.close();
-                connection.close();
-            } catch (SQLException e) {
-                logger.error(String.format("BenchmarkDAO.bulkInsertItemsToDB ERROR: { state => %s, cause => %s, message => %s }\n",
-                        e.getSQLState(), e.getCause(), e.getMessage()));
-                return false;
-            }
-        } catch (SQLException e) {
-            logger.error(String.format("BenchmarkDAO.bulkInsertItemsToDB ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage()));
-            return false;
-        }
-        return true;
-    }
-
-
-    public int bulkInsertRandomOrders(int amount, List<Customer> customerList) {
-
-        int BATCH_SIZE = 128;
-        int totalNewAccounts = 0;
-
-        try (Connection connection = ds.getConnection()) {
-
-            // We're managing the commit lifecycle ourselves so we can
-            // control the size of our batch inserts.
-            connection.setAutoCommit(false);
-
-            // In this example we are adding 500 rows to the database,
-            // but it could be any number.  What's important is that
-            // the batch size is 128.
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO orders (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
-                for (int i = 0; i <= (amount / BATCH_SIZE); i++) {
-                    for (int j = 0; j < BATCH_SIZE; j++) {
-                        Order orderRandom = new Order().setRandomValues(customerList.get(RandomUtils.nextInt(0, customerList.size())).c_id, seededRandomHelper);
-                        orderRandom.fillStatement(pstmt);
-                        //System.out.println(pstmt);
-                        sqlLog.add(pstmt.toString());
-                        workloadQueryController.add(pstmt.toString());
-                        logger.trace(pstmt.toString());
-                        pstmt.addBatch();
-                    }
-                    int[] count = pstmt.executeBatch();
-                    totalNewAccounts += count.length;
-                    System.out.printf("\nBenchmarkDAO.bulkInsertRandomOrders:\n    '%s'\n", pstmt);
-                    System.out.printf("    => %s row(s) updated in this batch\n", count.length);
-                }
-                connection.commit();
-                pstmt.close();
-                connection.close();
-            } catch (SQLException e) {
-                System.out.printf("BenchmarkDAO.bulkInsertRandomOrders ERROR: { state => %s, cause => %s, message => %s }\n",
-                        e.getSQLState(), e.getCause(), e.getMessage());
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.bulkInsertRandomOrders ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-        }
-        return totalNewAccounts;
+        return bulkInsertObjectsToDB(itemList);
     }
 
     public boolean bulkInsertOrdersToDB(List<Order> orderList) {
-        try (Connection connection = ds.getConnection()) {
-
-            // We're managing the commit lifecycle ourselves so we can
-            // control the size of our batch inserts.
-            connection.setAutoCommit(false);
-
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO orders (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
-                int counter = 0;
-                for (Order order : orderList) {
-                    counter++;
-                    order.fillStatement(pstmt);
-                    sqlLog.add(pstmt.toString());
-                    workloadQueryController.add(pstmt.toString());
-                    logger.trace(pstmt.toString());
-                    pstmt.addBatch();
-                    if (counter % 100 == 0 || counter == orderList.size()) {
-                        int[] count = pstmt.executeBatch();
-                        logger.trace(String.format("\nBenchmarkDAO.bulkInsertOrdersToDB:\n    '%s'\n", pstmt));
-                        logger.trace(String.format("    => %s row(s) updated in this batch\n", count.length));
-                    }
-                }
-                connection.commit();
-                pstmt.close();
-                connection.close();
-            } catch (SQLException e) {
-                logger.error(String.format("BenchmarkDAO.bulkInsertOrdersToDB ERROR: { state => %s, cause => %s, message => %s }\n",
-                        e.getSQLState(), e.getCause(), e.getMessage()));
-                return false;
-            }
-        } catch (SQLException e) {
-            logger.error(String.format("BenchmarkDAO.bulkInsertOrdersToDB ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage()));
-            return false;
-        }
-        return true;
+        return bulkInsertObjectsToDB(orderList);
     }
 
-    public Order insertRandomOrder(Customer customer) {
-        Order orderRandom = null;
-
-        try (Connection connection = ds.getConnection()) {
-
-            // We're managing the commit lifecycle ourselves so we can
-            // control the size of our batch inserts.
-            connection.setAutoCommit(false);
-
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO orders (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
-                orderRandom = new Order().setRandomValues(customer.c_id, seededRandomHelper);
-                orderRandom.fillStatement(pstmt);
-                sqlLog.add(pstmt.toString());
-                workloadQueryController.add(pstmt.toString());
-                logger.trace(pstmt.toString());
-
-                pstmt.execute();
-                connection.commit();
-                pstmt.close();
-                connection.close();
-            } catch (SQLException e) {
-                System.out.printf("BenchmarkDAO.bulkInsertRandomOrders ERROR: { state => %s, cause => %s, message => %s }\n",
-                        e.getSQLState(), e.getCause(), e.getMessage());
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.bulkInsertRandomOrders ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-        }
-        return orderRandom;
-    }
 
     public boolean insertOrderIntoDB(Order order) {
-        try (Connection connection = ds.getConnection()) {
-
-            // We're managing the commit lifecycle ourselves so we can
-            // control the size of our batch inserts.
-            //connection.setAutoCommit(false);
-
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO orders (o_id, c_id, o_date, o_sub_total, o_tax, o_total, o_ship_type, o_ship_date, o_ship_addr, o_status) VALUES (?, ?, ?, ?, ?, ? ,?, ?, ?, ?)")) {
-                order.fillStatement(pstmt);
-                sqlLog.add(pstmt.toString());
-                workloadQueryController.add(pstmt.toString());
-                logger.trace(pstmt.toString());
-
-                pstmt.execute();
-                //connection.commit();
-                pstmt.close();
-                connection.close();
-            } catch (SQLException e) {
-                System.out.printf("BenchmarkDAO.insertOrder ERROR: { state => %s, cause => %s, message => %s }\n",
-                        e.getSQLState(), e.getCause(), e.getMessage());
-                return false;
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.insertOrder ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-            return false;
-        }
-        return true;
+        return insertSingleObjectToDB(order);
     }
 
     public List<Order> getRandomOrders(int limit) {
@@ -942,82 +621,8 @@ class BenchmarkDAO {
         return updatedOrder;
     }
 
-
-    public int bulkInsertRandomOrderLine(int amount, List<Order> orderList, List<Item> itemList) {
-
-        int BATCH_SIZE = 128;
-        int totalNewAccounts = 0;
-
-        try (Connection connection = ds.getConnection()) {
-
-            // We're managing the commit lifecycle ourselves so we can
-            // control the size of our batch inserts.
-            connection.setAutoCommit(false);
-
-            // In this example we are adding 500 rows to the database,
-            // but it could be any number.  What's important is that
-            // the batch size is 128.
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO order_line (ol_id, o_id, i_id, ol_qty, ol_discount, ol_status) VALUES (?, ?, ?, ?, ?, ? )")) {
-                for (int i = 0; i <= (amount / BATCH_SIZE); i++) {
-                    for (int j = 0; j < BATCH_SIZE; j++) {
-                        Order randomOrder = orderList.get(RandomUtils.nextInt(0, orderList.size()));
-                        Item randomItem = itemList.get(RandomUtils.nextInt(0, orderList.size()));
-                        OrderLine orderLineRandom = new OrderLine().setRandomValues(randomOrder.o_id, randomItem.i_id, seededRandomHelper);
-                        orderLineRandom.fillStatement(pstmt);
-                        //System.out.println(pstmt);
-                        sqlLog.add(pstmt.toString());
-                        workloadQueryController.add(pstmt.toString());
-                        logger.trace(pstmt.toString());
-                        pstmt.addBatch();
-                    }
-                    int[] count = pstmt.executeBatch();
-                    totalNewAccounts += count.length;
-                    System.out.printf("\nBenchmarkDAO.bulkInsertRandomOrderLine:\n    '%s'\n", pstmt);
-                    System.out.printf("    => %s row(s) updated in this batch\n", count.length);
-                }
-                connection.commit();
-                pstmt.close();
-                connection.close();
-            } catch (SQLException e) {
-                System.out.printf("BenchmarkDAO.bulkInsertRandomOrderLine ERROR: { state => %s, cause => %s, message => %s }\n",
-                        e.getSQLState(), e.getCause(), e.getMessage());
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.bulkInsertRandomOrderLine ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-        }
-        return totalNewAccounts;
-    }
-
     public boolean insertOrderLinesIntoDB(List<OrderLine> orderLineList) {
-
-        try (Connection connection = ds.getConnection()) {
-
-            connection.setAutoCommit(false);
-
-            try (PreparedStatement pstmt = connection.prepareStatement("INSERT INTO order_line (ol_id, o_id, i_id, ol_qty, ol_discount, ol_status) VALUES (?, ?, ?, ?, ?, ? )")) {
-                for (OrderLine orderLine : orderLineList) {
-                    orderLine.fillStatement(pstmt);
-                    sqlLog.add(pstmt.toString());
-                    workloadQueryController.add(pstmt.toString());
-                    logger.trace(pstmt.toString());
-                    pstmt.addBatch();
-                }
-                pstmt.executeBatch();
-                connection.commit();
-                pstmt.close();
-                connection.close();
-            } catch (SQLException e) {
-                System.out.printf("BenchmarkDAO.insertOrderLinesIntoDB ERROR: { state => %s, cause => %s, message => %s }\n",
-                        e.getSQLState(), e.getCause(), e.getMessage());
-                return false;
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.insertOrderLinesIntoDB ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-            return false;
-        }
-        return true;
+        return bulkInsertObjectsToDB(orderLineList);
     }
 
     public List<OrderLine> getOrderLinesFromOrder(String orderID) {
@@ -1251,4 +856,6 @@ class BenchmarkDAO {
         }
         return itemList;
     }
+
+
 }
