@@ -16,4 +16,7 @@ public interface DatabaseTableModel {
     String getSQLInsertString();
 
     String getBasicSQLSelfSelectString();
+
+    String getBasicSQLAllSelectString();
+
 }

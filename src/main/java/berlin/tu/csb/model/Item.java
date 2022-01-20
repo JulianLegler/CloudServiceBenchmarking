@@ -75,6 +75,11 @@ public class Item implements DatabaseTableModel{
     }
 
     @Override
+    public String getBasicSQLAllSelectString() {
+        return String.format("SELECT * FROM item");
+    }
+
+    @Override
     public String toString() {
         return "Item{" +
                 "i_id='" + i_id + '\'' +

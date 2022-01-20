@@ -294,6 +294,40 @@ class BenchmarkDAO {
         return updatedObject;
     }
 
+    public List<? extends DatabaseTableModel> getAllOfObjectTypeFromDB(DatabaseTableModel databaseTableModel) {
+        List<DatabaseTableModel> databaseTableModelList = new ArrayList<>();
+
+
+        try (Connection connection = ds.getConnection()) {
+
+            try {
+                Statement statement = connection.createStatement();
+                String sqlStatement = String.format(databaseTableModel.getBasicSQLAllSelectString());
+                sqlLog.add(sqlStatement);
+                workloadQueryController.add(sqlStatement);
+                logger.trace(sqlStatement);
+                ResultSet rs = statement.executeQuery(sqlStatement);
+
+                while (rs.next()) {
+                    // get the implementing class of the interfaces object given to this method and create a new object of the same type and fill it afterwards
+                    DatabaseTableModel readDatabaseTableModel = databaseTableModel.getClass().getDeclaredConstructor().newInstance();
+                    readDatabaseTableModel.initWithResultSet(rs);
+                    databaseTableModelList.add(readDatabaseTableModel);
+                }
+                rs.close();
+                statement.close();
+                connection.close();
+            } catch (Exception e) {
+                System.err.println(e.getClass().getName() + ": " + e.getMessage());
+                System.exit(0);
+            }
+        } catch (SQLException e) {
+            System.out.printf("BenchmarkDAO.getAllOfObjectTypeFromDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n",
+                    databaseTableModel.getClass(), e.getSQLState(), e.getCause(), e.getMessage());
+        }
+        return databaseTableModelList;
+    }
+
     /**
      * Helper method called by 'testRetryHandling'.  It simply issues
      * a "SELECT 1" inside the transaction to force a retry.  This is
@@ -318,44 +352,6 @@ class BenchmarkDAO {
 
     public boolean insertCustomerIntoDB(Customer customer) {
         return insertSingleObjectToDB(customer);
-    }
-
-    public List<Customer> getRandomCustomers(int limit) {
-        ArrayList<Customer> randomCustomers = new ArrayList<>();
-        try (Connection connection = ds.getConnection()) {
-
-            try {
-                Statement statement = connection.createStatement();
-                String sqlStatement = String.format("SELECT * FROM customer ORDER BY random() LIMIT %d;", limit);
-                sqlLog.add(sqlStatement);
-                workloadQueryController.add(sqlStatement);
-                logger.trace(sqlStatement);
-                ResultSet rs = statement.executeQuery(sqlStatement);
-
-                while (rs.next()) {
-                    Customer customer = new Customer();
-                    customer.initWithResultSet(rs);
-                    randomCustomers.add(customer);
-                }
-
-                rs.close();
-
-                statement.close();
-
-                connection.close();
-
-            } catch (Exception e) {
-
-                System.err.println(e.getClass().getName() + ": " + e.getMessage());
-
-                System.exit(0);
-
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.getRandomCostumers ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-        }
-        return randomCustomers;
     }
 
     public Customer getCustomerFromDB(Customer customer) {
@@ -423,46 +419,6 @@ class BenchmarkDAO {
 
     public boolean insertOrderIntoDB(Order order) {
         return insertSingleObjectToDB(order);
-    }
-
-    public List<Order> getRandomOrders(int limit) {
-        ArrayList<Order> randomOrders = new ArrayList<>();
-        try (Connection connection = ds.getConnection()) {
-
-            try {
-                Statement statement = connection.createStatement();
-                String sqlStatement = String.format("SELECT * FROM orders ORDER BY random() LIMIT %d;", limit);
-                sqlLog.add(sqlStatement);
-                workloadQueryController.add(sqlStatement);
-                logger.trace(sqlStatement);
-                ResultSet rs = statement.executeQuery(sqlStatement);
-
-                while (rs.next()) {
-
-                    Order order = new Order();
-                    order.initWithResultSet(rs);
-                    randomOrders.add(order);
-
-                }
-
-                rs.close();
-
-                statement.close();
-
-                connection.close();
-
-            } catch (Exception e) {
-
-                System.err.println(e.getClass().getName() + ": " + e.getMessage());
-
-                System.exit(0);
-
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.getRandomOrders ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-        }
-        return randomOrders;
     }
 
     public List<Order> getOrdersFromCustomer(String customerID) {
@@ -671,82 +627,19 @@ class BenchmarkDAO {
 
 
     public List<Customer> getAllCustomersFromDB() {
-
-        List<Customer> customerList = new ArrayList<>();
-        try (Connection connection = ds.getConnection()) {
-
-            try {
-                Statement statement = connection.createStatement();
-                String sqlStatement = String.format("SELECT * FROM customer");
-                sqlLog.add(sqlStatement);
-                workloadQueryController.add(sqlStatement);
-                logger.trace(sqlStatement);
-                ResultSet rs = statement.executeQuery(sqlStatement);
-
-                while (rs.next()) {
-                    Customer customer = new Customer();
-                    customer.initWithResultSet(rs);
-                    customerList.add(customer);
-                }
-
-                rs.close();
-
-                statement.close();
-
-                connection.close();
-
-            } catch (Exception e) {
-
-                System.err.println(e.getClass().getName() + ": " + e.getMessage());
-
-                System.exit(0);
-
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.getAllCustomersFromDB ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-        }
-        return customerList;
+        return (List<Customer>) getAllOfObjectTypeFromDB(new Customer());
     }
 
     public List<Item> getAllItemsFormDB() {
-        ArrayList<Item> itemList = new ArrayList<>();
-        try (Connection connection = ds.getConnection()) {
+        return (List<Item>) getAllOfObjectTypeFromDB(new Item());
+    }
 
-            try {
-                Statement statement = connection.createStatement();
-                String sqlStatement = String.format("SELECT * FROM item");
-                sqlLog.add(sqlStatement);
-                workloadQueryController.add(sqlStatement);
-                logger.trace(sqlStatement);
-                ResultSet rs = statement.executeQuery(sqlStatement);
+    public List<Order> getAllOrdersFromDB() {
+        return (List<Order>) getAllOfObjectTypeFromDB(new Order());
+    }
 
-                while (rs.next()) {
-
-                    Item item = new Item();
-                    item.initWithResultSet(rs);
-                    itemList.add(item);
-
-                }
-
-                rs.close();
-
-                statement.close();
-
-                connection.close();
-
-            } catch (Exception e) {
-
-                System.err.println(e.getClass().getName() + ": " + e.getMessage());
-
-                System.exit(0);
-
-            }
-        } catch (SQLException e) {
-            System.out.printf("BenchmarkDAO.getAllItemsFormDB ERROR: { state => %s, cause => %s, message => %s }\n",
-                    e.getSQLState(), e.getCause(), e.getMessage());
-        }
-        return itemList;
+    public List<OrderLine> getAllOrderLinesFromDB() {
+        return (List<OrderLine>) getAllOfObjectTypeFromDB(new OrderLine());
     }
 
 

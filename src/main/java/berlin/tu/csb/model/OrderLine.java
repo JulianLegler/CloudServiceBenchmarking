@@ -59,6 +59,11 @@ public class OrderLine implements DatabaseTableModel{
     }
 
     @Override
+    public String getBasicSQLAllSelectString() {
+        return String.format("SELECT * FROM order_line");
+    }
+
+    @Override
     public String toString() {
         return "OrderLine{" +
                 "ol_id='" + ol_id + '\'' +
