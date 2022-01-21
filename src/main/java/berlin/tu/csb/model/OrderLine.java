@@ -5,6 +5,7 @@ import berlin.tu.csb.controller.SeededRandomHelper;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.AbstractMap;
 import java.util.UUID;
 
 public class OrderLine implements DatabaseTableModel{
@@ -61,6 +62,11 @@ public class OrderLine implements DatabaseTableModel{
     @Override
     public String getBasicSQLAllSelectString() {
         return String.format("SELECT * FROM order_line");
+    }
+
+    @Override
+    public AbstractMap.SimpleEntry<String, String> getPrimaryKeyNameAndValue() {
+        return new AbstractMap.SimpleEntry<>("ol_id", ol_id);
     }
 
     @Override

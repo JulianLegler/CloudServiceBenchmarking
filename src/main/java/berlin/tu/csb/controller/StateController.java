@@ -30,6 +30,8 @@ public class StateController {
         return orderIds.size();
     }
 
+    public int getOrderLineSize() {return orderLineIds.size();}
+
 
 
     public void addCustomer(Customer customer) {

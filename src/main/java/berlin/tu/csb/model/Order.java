@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.AbstractMap;
 import java.util.UUID;
 
 public class Order implements DatabaseTableModel{
@@ -78,6 +79,11 @@ public class Order implements DatabaseTableModel{
     @Override
     public String getBasicSQLAllSelectString() {
         return String.format("SELECT * FROM orders");
+    }
+
+    @Override
+    public AbstractMap.SimpleEntry<String, String> getPrimaryKeyNameAndValue() {
+        return new AbstractMap.SimpleEntry<>("o_id", o_id);
     }
 
     @Override

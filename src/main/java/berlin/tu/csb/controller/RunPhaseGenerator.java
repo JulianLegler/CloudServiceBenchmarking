@@ -2,11 +2,14 @@ package berlin.tu.csb.controller;
 
 import berlin.tu.csb.model.Customer;
 import berlin.tu.csb.model.Item;
+import berlin.tu.csb.model.Order;
+import berlin.tu.csb.model.OrderLine;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
 import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -44,6 +47,16 @@ public class RunPhaseGenerator implements Runnable {
         persistenceController.syncItemStateWithDB();
         logger.info("Fetched " + persistenceController.stateController.getItemListSize() + " Items from DB.");
 
+        logger.info("Fetching Orders from DB...");
+        persistenceController.syncOrderStateWithDB();
+        logger.info("Fetched " + persistenceController.stateController.getOrderSize() + " Orders from DB.");
+
+        logger.info("Fetching OrderLines from DB...");
+        persistenceController.syncOrderLineStateWithDB();
+        logger.info("Fetched " + persistenceController.stateController.getOrderLineSize() + " OrderLines from DB.");
+
+
+
 
         // Coordination Phase: All threads wait until the set time has come
         while (System.currentTimeMillis() < startTime) {
@@ -60,8 +73,10 @@ public class RunPhaseGenerator implements Runnable {
 
         // Create a Array filled with the methods that should run. Place them in there multiple times depending on the probability they should get picked afterwards
         ArrayList<Runnable> probabilityArray = new ArrayList<>();
-        addToProbabilityList(95, new fetchRandomItem(), probabilityArray);
-        addToProbabilityList(5, new fetchRandomCustomer(), probabilityArray);
+        addToProbabilityList(80, new fetchRandomItem(), probabilityArray);
+        addToProbabilityList(10, new fetchRandomCustomer(), probabilityArray);
+        addToProbabilityList(5, new fetchOrdersFromRandomCustomer(), probabilityArray);
+        addToProbabilityList(5, new fetchOrderLinesFromRandomOrder(), probabilityArray);
 
         if(probabilityArray.size() != 100) {
             logger.warn(String.format("Summed probability is %d and not 100!", probabilityArray.size()));
@@ -73,11 +88,6 @@ public class RunPhaseGenerator implements Runnable {
             int dice = seededRandomHelper.getIntBetween(0, 99);
 
             probabilityArray.get(dice).run();
-
-
-
-
-
 
 
 
@@ -102,28 +112,26 @@ public class RunPhaseGenerator implements Runnable {
         }
     }
 
+    private class fetchOrdersFromRandomCustomer implements Runnable {
+        @Override
+        public void run() {
+            List<Order> orderList = persistenceController.databaseController.getOrdersOfCustomer(persistenceController.stateController.getRandomCustomer());
+            logger.info("Requested list of all orders for a random customer and retrieved " +  orderList.size() + " orders from the DB.");
+        }
+    }
+
+    private class fetchOrderLinesFromRandomOrder implements Runnable {
+        @Override
+        public void run() {
+            List<OrderLine> orderLineList = persistenceController.databaseController.getOrderLinesOfOrder(persistenceController.stateController.getRandomOrder());
+            logger.info("Requested list of all orderslines for a random order and retrieved " +  orderLineList.size() + " orders from the DB.");
+        }
+    }
+
     private void addToProbabilityList(int percentage, Runnable function, ArrayList<Runnable> probabilityList) {
         for (int i = 0; i < percentage; i++) {
             probabilityList.add(function);
         }
-    }
-
-    /*
-    private boolean fetchRandomItems() {
-        return persistenceController.databaseController.getItems(persistenceController.stateController.getRandomItems(seededRandomHelper.getIntBetween(1, 20))).size() != 0;
-    }
-
-     */
-
-    /*
-    private boolean fetchRandomCustomer() {
-        return persistenceController.databaseController.getCustomer(persistenceController.stateController.getRandomCustomer()) != null;
-    }
-
-     */
-
-    private boolean fetchOrdersFromRandomCustomer() {
-        return persistenceController.databaseController.getOrdersOfCustomer(persistenceController.stateController.getRandomCustomer()) != null;
     }
 
 }

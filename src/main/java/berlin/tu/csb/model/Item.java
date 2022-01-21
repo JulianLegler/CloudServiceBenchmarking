@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.AbstractMap;
 import java.util.UUID;
 
 public class Item implements DatabaseTableModel{
@@ -77,6 +78,11 @@ public class Item implements DatabaseTableModel{
     @Override
     public String getBasicSQLAllSelectString() {
         return String.format("SELECT * FROM item");
+    }
+
+    @Override
+    public AbstractMap.SimpleEntry<String, String> getPrimaryKeyNameAndValue() {
+        return new AbstractMap.SimpleEntry<>("i_id", i_id);
     }
 
     @Override

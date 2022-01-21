@@ -5,6 +5,7 @@ import berlin.tu.csb.controller.SeededRandomHelper;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.AbstractMap;
 
 public interface DatabaseTableModel {
     DatabaseTableModel setRandomValues(SeededRandomHelper seededRandomHelper);
@@ -18,5 +19,7 @@ public interface DatabaseTableModel {
     String getBasicSQLSelfSelectString();
 
     String getBasicSQLAllSelectString();
+
+    AbstractMap.SimpleEntry<String, String> getPrimaryKeyNameAndValue();
 
 }

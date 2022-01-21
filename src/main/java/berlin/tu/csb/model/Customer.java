@@ -5,6 +5,7 @@ import berlin.tu.csb.controller.SeededRandomHelper;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.AbstractMap;
 import java.util.UUID;
 
 public class Customer implements DatabaseTableModel {
@@ -84,6 +85,11 @@ public class Customer implements DatabaseTableModel {
 
     public String getBasicSQLAllSelectString() {
         return String.format("SELECT * FROM customer;");
+    }
+
+    @Override
+    public AbstractMap.SimpleEntry<String, String> getPrimaryKeyNameAndValue() {
+        return new AbstractMap.SimpleEntry<>("c_id", c_id);
     }
 
     @Override

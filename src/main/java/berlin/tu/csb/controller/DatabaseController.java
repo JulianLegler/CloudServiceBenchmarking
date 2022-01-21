@@ -118,4 +118,8 @@ public class DatabaseController {
     public boolean bulkInsertOrders(List<Order> orderList) { return dao.bulkInsertOrdersToDB(orderList); }
 
     public List<Item> fetchAllItems() { return dao.getAllItemsFormDB(); }
+
+    public List<Order> fetchAllOrders() { return dao.getAllOrdersFromDB(); }
+
+    public List<OrderLine> fetchAllOrderLines() { return dao.getAllOrderLinesFromDB(); }
 }

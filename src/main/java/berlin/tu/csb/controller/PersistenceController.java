@@ -122,4 +122,26 @@ public class PersistenceController {
         }
         return true;
     }
+
+    public boolean syncOrderStateWithDB() {
+        List<Order> orderList = databaseController.fetchAllOrders();
+        if(orderList == null || orderList.size() == 0) {
+            return false;
+        }
+        for (Order order: orderList) {
+            stateController.addOrder(order);
+        }
+        return true;
+    }
+
+    public boolean syncOrderLineStateWithDB() {
+        List<OrderLine> orderLineList = databaseController.fetchAllOrderLines();
+        if(orderLineList == null || orderLineList.size() == 0) {
+            return false;
+        }
+        for (OrderLine orderLine: orderLineList) {
+            stateController.addOrderLine(orderLine);
+        }
+        return true;
+    }
 }

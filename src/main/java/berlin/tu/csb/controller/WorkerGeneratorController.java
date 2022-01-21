@@ -242,22 +242,6 @@ public class WorkerGeneratorController {
         return isSuccessful;
     }
 
-    public boolean fetchRandomItem() {
-        return persistenceController.databaseController.getItem(persistenceController.stateController.getRandomItem()) != null;
-    }
-
-    public boolean fetchRandomItems() {
-        return persistenceController.databaseController.getItems(persistenceController.stateController.getRandomItems(seededRandomHelper.getIntBetween(1, 20))).size() != 0;
-    }
-
-    public boolean fetchRandomCustomer() {
-        return persistenceController.databaseController.getCustomer(persistenceController.stateController.getRandomCustomer()) != null;
-    }
-
-    public boolean fetchOrdersFromRandomCustomer() {
-        return persistenceController.databaseController.getOrdersOfCustomer(persistenceController.stateController.getRandomCustomer()) != null;
-    }
-
     public boolean bulkInsertNewItems(long amount) {
         /*
          *
