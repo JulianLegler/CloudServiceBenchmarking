@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 
@@ -24,6 +25,8 @@ public class RunPhaseGenerator implements Runnable {
     SeededRandomHelper seededRandomHelper;
     PersistenceController persistenceController;
     Logger logger = LogManager.getLogger(RunPhaseGenerator.class);
+
+    ArrayList<Item> topSellerItems;
 
     public RunPhaseGenerator(PersistenceController persistenceController, SeededRandomHelper seededRandomHelper, long startTime, long runTimeInSeconds, long endTime) {
         this.persistenceController = persistenceController;
@@ -56,6 +59,11 @@ public class RunPhaseGenerator implements Runnable {
         logger.info("Fetched " + persistenceController.stateController.getOrderLineSize() + " OrderLines from DB.");
 
 
+        // Creates a List of "Top Seller Items" that will be more frequently searched than others
+        topSellerItems = new ArrayList<>(persistenceController.stateController.getRandomItems((int) (persistenceController.stateController.getItemListSize() * 0.1)));
+
+
+
 
 
         // Coordination Phase: All threads wait until the set time has come
@@ -73,7 +81,8 @@ public class RunPhaseGenerator implements Runnable {
 
         // Create a Array filled with the methods that should run. Place them in there multiple times depending on the probability they should get picked afterwards
         ArrayList<Runnable> probabilityArray = new ArrayList<>();
-        addToProbabilityList(80, new fetchRandomItem(), probabilityArray);
+        addToProbabilityList(60, new fetchRandomTopSellerItem(), probabilityArray);
+        addToProbabilityList(20, new fetchRandomItem(), probabilityArray);
         addToProbabilityList(10, new fetchRandomCustomer(), probabilityArray);
         addToProbabilityList(5, new fetchOrdersFromRandomCustomer(), probabilityArray);
         addToProbabilityList(5, new fetchOrderLinesFromRandomOrder(), probabilityArray);
@@ -101,6 +110,14 @@ public class RunPhaseGenerator implements Runnable {
         public void run() {
             Item item = persistenceController.databaseController.getItem(persistenceController.stateController.getRandomItem());
             logger.info("Requested random Item " + item.i_id + " from DB.");
+        }
+    }
+
+    private class fetchRandomTopSellerItem implements Runnable {
+        @Override
+        public void run() {
+            Item item = persistenceController.databaseController.getItem(topSellerItems.get(seededRandomHelper.getIntBetween(0, topSellerItems.size()-1)));
+            logger.info("Requested top seller Item " + item.i_id + " from DB.");
         }
     }
 

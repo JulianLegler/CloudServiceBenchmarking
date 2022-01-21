@@ -50,144 +50,6 @@ public class WorkerGeneratorController {
         return orderLineList;
     }
 
-
-    public boolean placeNewOrderForNewCustomer() {
-
-        /*
-         *
-         * Phase 1: generate and gather data
-         *
-         */
-
-        // Create a new customer
-        Customer customer = getNewCustomerModelWithRandomData();
-
-        // Get some existing Items
-        List<Item> itemList;
-        if(persistenceController.stateController.hasItems()) {
-            itemList = persistenceController.stateController.getRandomItems(SeededRandomHelper.getIntBetween(1, 8));
-        }
-        else {
-            System.out.println("Error: no items in local state");
-            return false;
-        }
-
-        // create a new Order object
-        Order order = getNewOrderModelWithRandomData(customer);
-        // create new order lines for each the newly created order with the fetched items
-        List<OrderLine> orderLineList = getNewOrderLineModelList(order, itemList);
-
-        /*
-         *
-         * Phase 2: Insert Data to Database
-         *
-         */
-        boolean isSuccessful = true;
-        if (!persistenceController.insertCustomer(customer)) {
-            System.out.printf("Error while inserting Customer %s", customer);
-            isSuccessful = false;
-
-        }
-        if (isSuccessful) {
-            if(!persistenceController.insertOrderWithOrderLines(order, orderLineList)) {
-                System.out.printf("Error while inserting order (with orderlines) %s", order);
-                isSuccessful = false;
-            }
-        }
-
-        return isSuccessful;
-
-    }
-
-    public boolean placeNewOrderForExistingCustomer() {
-        /*
-         *
-         * Phase 1: generate and gather data
-         *
-         */
-        // get an existing customer
-        Customer customer;
-        if(persistenceController.stateController.hasCustomer()) {
-            customer = persistenceController.stateController.getRandomCustomer();
-        }
-        else {
-            System.out.println("Error: no customers in local state");
-            return false;
-        }
-
-        // Get some existing Items
-        List<Item> itemList;
-        if(persistenceController.stateController.hasItems()) {
-            itemList = persistenceController.stateController.getRandomItems(SeededRandomHelper.getIntBetween(1, 8));
-        }
-        else {
-            System.out.println("Error: no items in local state");
-            return false;
-        }
-
-
-        // create a new Order object
-        Order order = getNewOrderModelWithRandomData(customer);
-        // create new order lines for each the newly created order with the fetched items
-        List<OrderLine> orderLineList = getNewOrderLineModelList(order, itemList);
-
-        /*
-         *
-         * Phase 2: Insert Data to Database
-         *
-         */
-        boolean isSuccessful = true;
-        if (isSuccessful) {
-            if(!persistenceController.insertOrderWithOrderLines(order, orderLineList)) {
-                System.out.printf("Error while inserting order (with orderlines) %s", order);
-                isSuccessful = false;
-            }
-        }
-
-        return isSuccessful;
-    }
-
-    public boolean insertNewData() {
-        /*
-         *
-         * Phase 1: generate or gather data
-         *
-         */
-        // create a new customer, a new order, new items and then new orderlines with the created data
-        Customer customer = getNewCustomerModelWithRandomData();
-        Order order = getNewOrderModelWithRandomData(customer);
-        List<Item> itemList = getNewItemModelListWithRandomData(SeededRandomHelper.getIntBetween(1, 10));
-        List<OrderLine> orderLineList = getNewOrderLineModelList(order, itemList);
-
-        /*
-         *
-         * Phase 2: Insert Data to Database
-         *
-         */
-        boolean isSuccessful = true;
-        if (!persistenceController.insertCustomer(customer)) {
-            System.out.printf("Error while inserting Customer %s", customer);
-            isSuccessful = false;
-
-        }
-        if (isSuccessful) {
-            for (Item item : itemList) {
-                if (!persistenceController.insertItem(item)) {
-                    System.out.printf("Error while inserting Item %s", item);
-                    isSuccessful = false;
-                }
-            }
-        }
-        if (isSuccessful) {
-            if(!persistenceController.insertOrderWithOrderLines(order, orderLineList)) {
-                System.out.printf("Error while inserting order (with orderlines) %s", order);
-                isSuccessful = false;
-            }
-        }
-
-        return isSuccessful;
-    }
-
     public boolean bulkInsertNewCustomers(long amount) {
         /*
          *
@@ -215,32 +77,6 @@ public class WorkerGeneratorController {
         return isSuccessful;
     }
 
-    public boolean insertNewItems() {
-        /*
-         *
-         * Phase 1: generate or gather data
-         *
-         */
-        List<Item> itemList = getNewItemModelListWithRandomData(SeededRandomHelper.getIntBetween(1, 10));
-
-
-        /*
-         *
-         * Phase 2: Insert Data to Database
-         *
-         */
-        boolean isSuccessful = true;
-
-        for (Item item : itemList) {
-            if (!persistenceController.insertItem(item)) {
-                System.out.printf("Error while inserting Item %s", item);
-                isSuccessful = false;
-            }
-        }
-
-
-        return isSuccessful;
-    }
 
     public boolean bulkInsertNewItems(long amount) {
         /*
@@ -298,7 +134,7 @@ public class WorkerGeneratorController {
             // Get some existing Items
             List<Item> itemList;
             if(persistenceController.stateController.hasItems()) {
-                itemList = persistenceController.stateController.getRandomItems(SeededRandomHelper.getIntBetween(1, 8));
+                itemList = persistenceController.stateController.getRandomItems(seededRandomHelper.getIntBetween(1, 8));
             }
             else {
                 System.out.println("Error: no items in local state");

@@ -18,6 +18,12 @@ public class StateController {
     private final ArrayList<String> orderIds = new ArrayList<>();
     private final ArrayList<String> orderLineIds = new ArrayList<>();
 
+    private SeededRandomHelper seededRandomHelper;
+
+    public StateController(SeededRandomHelper seededRandomHelper) {
+        this.seededRandomHelper = seededRandomHelper;
+    }
+
     public int getCustomerListSize() {
         return customerIds.size();
     }
@@ -55,12 +61,12 @@ public class StateController {
     }
 
     public Customer getRandomCustomer() {
-        String randomCustomerId = customerIds.get(SeededRandomHelper.getIntBetween(0, customerIds.size()-1));
+        String randomCustomerId = customerIds.get(seededRandomHelper.getIntBetween(0, customerIds.size()-1));
         return customerMap.get(randomCustomerId);
     }
 
     public Item getRandomItem() {
-        String randomItemId = itemIds.get(SeededRandomHelper.getIntBetween(0, itemIds.size()-1));
+        String randomItemId = itemIds.get(seededRandomHelper.getIntBetween(0, itemIds.size()-1));
         return itemMap.get(randomItemId);
     }
 
@@ -82,7 +88,7 @@ public class StateController {
     }
 
     public Order getRandomOrder() {
-        String randomOrderId = orderIds.get(SeededRandomHelper.getIntBetween(0, orderIds.size()-1));
+        String randomOrderId = orderIds.get(seededRandomHelper.getIntBetween(0, orderIds.size()-1));
         return orderMap.get(randomOrderId);
     }
 

@@ -44,7 +44,7 @@ public class MainController {
 
 
 
-        runLoadPhase(serverAddresses, benchmarkConfig);
+        //runLoadPhase(serverAddresses, benchmarkConfig);
         runRunPhase(serverAddresses, benchmarkConfig);
 
     }
@@ -58,7 +58,7 @@ public class MainController {
         long runTimeInSeconds = 60 * 1;
         long endTime = startTime + runTimeInSeconds * 1000;
 
-        threadCount = 1;
+        threadCount = 100;
 
 
         List<Thread> threadList = new ArrayList<>();
@@ -68,9 +68,10 @@ public class MainController {
             String pickedServerAddress = serverAddresses[i % serverAddresses.length];
 
             // Have a PersistenceController per thread to manage the current database part that is used by this thread so they dont interfere with each other
-            PersistenceController persistenceController = new PersistenceController(new DatabaseController("tpc_w_light", "root", 26257, pickedServerAddress), new StateController());
+            SeededRandomHelper seededRandomHelper = new SeededRandomHelper(seed+i);
+            PersistenceController persistenceController = new PersistenceController(new DatabaseController("tpc_w_light", "root", 26257, pickedServerAddress), new StateController(seededRandomHelper));
             persistenceControllerList.add(persistenceController);
-            RunPhaseGenerator runPhaseGenerator = new RunPhaseGenerator(persistenceController, new SeededRandomHelper(seed+i), startTime, runTimeInSeconds, endTime);
+            RunPhaseGenerator runPhaseGenerator = new RunPhaseGenerator(persistenceController, seededRandomHelper, startTime, runTimeInSeconds, endTime);
             //workloadGenerator.run();
 
             Thread thread = new Thread(runPhaseGenerator);
@@ -151,9 +152,10 @@ public class MainController {
             String pickedServerAddress = serverAddresses[i % serverAddresses.length];
 
             // Have a PersistenceController per thread to manage the current database part that is used by this thread so they dont interfere with each other
-            PersistenceController persistenceController = new PersistenceController(new DatabaseController("tpc_w_light", "root", 26257, pickedServerAddress), new StateController());
+            SeededRandomHelper seededRandomHelper = new SeededRandomHelper(seed+i);
+            PersistenceController persistenceController = new PersistenceController(new DatabaseController("tpc_w_light", "root", 26257, pickedServerAddress), new StateController(seededRandomHelper));
             persistenceControllerList.add(persistenceController);
-            LoadPhaseGenerator loadPhaseGenerator = new LoadPhaseGenerator(persistenceController, new SeededRandomHelper(seed+i), benchmarkConfig);
+            LoadPhaseGenerator loadPhaseGenerator = new LoadPhaseGenerator(persistenceController, seededRandomHelper, benchmarkConfig);
             //workloadGenerator.run();
 
             Thread thread = new Thread(loadPhaseGenerator);
