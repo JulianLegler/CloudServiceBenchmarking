@@ -26,7 +26,7 @@ public class Item implements DatabaseTableModel{
     }
 
     public DatabaseTableModel setRandomValues(SeededRandomHelper seededRandomHelper) {
-        i_id = UUID.randomUUID().toString();
+        i_id = seededRandomHelper.getUUID().toString();
         i_title = seededRandomHelper.getStringWithLength(5, 60);
         i_pub_date = new Timestamp(seededRandomHelper.getLongBetween(1, System.currentTimeMillis())); //LocalDateTime.of(RandomUtils.nextInt(1900, 2022), RandomUtils.nextInt(1, 12), RandomUtils.nextInt(1, 30), 0, 0, 0);
         i_publisher = seededRandomHelper.getStringWithLength(5, 60);

@@ -1,6 +1,9 @@
 package berlin.tu.csb.controller;
 
+import org.apache.commons.codec.binary.Hex;
+
 import java.util.Random;
+import java.util.UUID;
 
 public class SeededRandomHelper {
     public Random seededRandom;
@@ -13,8 +16,16 @@ public class SeededRandomHelper {
         seededRandom = new Random(seed);
     }
 
+    public UUID getUUID() {
 
-
+        byte[] randomBytes = new byte[16];
+        seededRandom.nextBytes(randomBytes);
+        randomBytes[6]  &= 0x0f;  /* clear version        */
+        randomBytes[6]  |= 0x40;  /* set to version 4     */
+        randomBytes[8]  &= 0x3f;  /* clear variant        */
+        randomBytes[8]  |= 0x80;  /* set to IETF variant  */
+        return UUID.nameUUIDFromBytes(randomBytes);
+    }
     public float getFloatBetween(float start, float end) {
         return start + ((end - start) * seededRandom.nextFloat());
     }

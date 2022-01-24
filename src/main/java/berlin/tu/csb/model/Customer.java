@@ -25,7 +25,7 @@ public class Customer implements DatabaseTableModel {
 
     @Override
     public DatabaseTableModel setRandomValues(SeededRandomHelper seededRandomHelper) {
-        c_id = UUID.randomUUID().toString();
+        c_id = seededRandomHelper.getUUID().toString();
         c_business_name = seededRandomHelper.getStringWithLength(5, 20);
         c_business_info = seededRandomHelper.getStringWithLength(20, 100);
         c_passwd = seededRandomHelper.getStringWithLength(5, 20);

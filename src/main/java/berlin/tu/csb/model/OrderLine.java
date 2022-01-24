@@ -21,7 +21,7 @@ public class OrderLine implements DatabaseTableModel{
     }
 
     public OrderLine setRandomValues(SeededRandomHelper seededRandomHelper) {
-        ol_id = UUID.randomUUID().toString();
+        ol_id = seededRandomHelper.getUUID().toString();
         o_id = null;
         i_id = null;
         ol_qty = seededRandomHelper.getIntBetween(1, 100);

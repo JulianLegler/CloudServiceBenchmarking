@@ -15,6 +15,10 @@ import java.util.*;
 public class MainController {
     static DatabaseController databaseController;
     static int threadCount = 5;
+    // Create for each iteration a new directory with the creation timestamp of the workload
+    static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH.mm.ss.SSS");
+    static Date now = new Date(System.currentTimeMillis());
+    static String dateString = sdf.format(now);
 
     public static void main(String[] args) {
         System.out.println("Present Project Directory : "+ System.getProperty("user.dir"));
@@ -40,7 +44,7 @@ public class MainController {
 
         databaseController = new DatabaseController("tpc_w_light", "root", 26257, serverAddresses[0]);
 
-        // databaseController.dao.truncateAllTables();
+        databaseController.dao.truncateAllTables();
 
 
 
@@ -104,11 +108,6 @@ public class MainController {
         System.out.println("Executed " + sqlCounter + " in " + (t1_2-t1_1)/1000 + " seconds. " + sqlCounter / runTimeInSeconds + "t/s AVG of planned time and " + sqlCounter / ((t1_2-t1_1)/1000) + " t/s AVG on the actual time used");
 
 
-        // Create for each iteration a new directory with the creation timestamp of the workload
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH.mm.ss.SSS");
-        Date now = new Date(System.currentTimeMillis());
-        String dateString = sdf.format(now);
-
         // use GSON to create json objects of the safed workload queries and safe them to a directory
         Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
         for (PersistenceController persistenceController: persistenceControllerList) {
@@ -122,7 +121,7 @@ public class MainController {
 
             long threadId = persistenceController.databaseController.workloadQueryController.workloadContextId;
 
-            Path filePath = Paths.get(System.getProperty("user.dir"), "workload", dateString, String.valueOf(threadId)+".json");
+            Path filePath = Paths.get(System.getProperty("user.dir"), "workload", dateString, "run_" + String.valueOf(threadId)+".json");
             try {
                 Files.createDirectories(filePath.getParent());
                 Files.writeString(filePath, json, StandardOpenOption.CREATE_NEW);
@@ -185,13 +184,8 @@ public class MainController {
 
         //System.out.println(databaseController.dao.sqlLog);
         System.out.println("Log size:" + sqlCounter);
-        System.out.println("Executed " + sqlCounter + " in " + (t1_2-t1_1)/1000 + " seconds. " + sqlCounter / runTimeInSeconds + "t/s AVG of planned time and " + sqlCounter / ((t1_2-t1_1)/1000) + " t/s AVG on the actual time used");
+        System.out.println("Executed " + sqlCounter + " in " + (t1_2-t1_1)/1000 + " seconds. ");
 
-
-        // Create for each iteration a new directory with the creation timestamp of the workload
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH.mm.ss.SSS");
-        Date now = new Date(System.currentTimeMillis());
-        String dateString = sdf.format(now);
 
         // use GSON to create json objects of the safed workload queries and safe them to a directory
         Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
@@ -206,7 +200,7 @@ public class MainController {
 
             long threadId = persistenceController.databaseController.workloadQueryController.workloadContextId;
 
-            Path filePath = Paths.get(System.getProperty("user.dir"), "workload", dateString, String.valueOf(threadId)+".json");
+            Path filePath = Paths.get(System.getProperty("user.dir"), "workload", dateString, "load_" + String.valueOf(threadId)+".json");
             try {
                 Files.createDirectories(filePath.getParent());
                 Files.writeString(filePath, json, StandardOpenOption.CREATE_NEW);

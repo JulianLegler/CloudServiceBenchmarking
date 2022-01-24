@@ -27,7 +27,7 @@ public class Order implements DatabaseTableModel{
     }
 
     public DatabaseTableModel setRandomValues(SeededRandomHelper seededRandomHelper) {
-        o_id = UUID.randomUUID().toString();
+        o_id = seededRandomHelper.getUUID().toString();
         c_id = null;
         o_date = new Timestamp(seededRandomHelper.getLongBetween(1577833200000L, 1641141846417L)); //2020 - now
         o_sub_total = seededRandomHelper.getFloatBetween(5f, 12000f);
