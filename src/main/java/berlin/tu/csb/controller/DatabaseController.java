@@ -122,4 +122,10 @@ public class DatabaseController {
     public List<Order> fetchAllOrders() { return dao.getAllOrdersFromDB(); }
 
     public List<OrderLine> fetchAllOrderLines() { return dao.getAllOrderLinesFromDB(); }
+
+    public List<Item> getItemsSortedByPrice(int limit) { return dao.getItemsFromDBOrderedByPrice(limit); }
+
+    public List<Item> getItemsSortedByName(int limit) { return dao.getItemsFromDBOrderedByName(limit); }
+
+    public List<Item> getItemsWithName(int limit, String searchName) { return dao.getItemsFromDBWhereNameContains(limit, searchName); }
 }

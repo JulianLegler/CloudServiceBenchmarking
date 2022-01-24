@@ -44,7 +44,7 @@ public class MainController {
 
 
 
-        //runLoadPhase(serverAddresses, benchmarkConfig);
+        runLoadPhase(serverAddresses, benchmarkConfig);
         runRunPhase(serverAddresses, benchmarkConfig);
 
     }
@@ -58,7 +58,7 @@ public class MainController {
         long runTimeInSeconds = 60 * 1;
         long endTime = startTime + runTimeInSeconds * 1000;
 
-        threadCount = 100;
+        threadCount = 10;
 
 
         List<Thread> threadList = new ArrayList<>();

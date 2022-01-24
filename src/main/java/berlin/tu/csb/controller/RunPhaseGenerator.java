@@ -81,11 +81,16 @@ public class RunPhaseGenerator implements Runnable {
 
         // Create a Array filled with the methods that should run. Place them in there multiple times depending on the probability they should get picked afterwards
         ArrayList<Runnable> probabilityArray = new ArrayList<>();
-        addToProbabilityList(60, new fetchRandomTopSellerItem(), probabilityArray);
+        addToProbabilityList(40, new fetchRandomTopSellerItem(), probabilityArray);
         addToProbabilityList(20, new fetchRandomItem(), probabilityArray);
         addToProbabilityList(10, new fetchRandomCustomer(), probabilityArray);
         addToProbabilityList(5, new fetchOrdersFromRandomCustomer(), probabilityArray);
         addToProbabilityList(5, new fetchOrderLinesFromRandomOrder(), probabilityArray);
+        addToProbabilityList(5, new fetchItemsSortedByName(), probabilityArray);
+        addToProbabilityList(5, new fetchItemsSortedByPrice(), probabilityArray);
+        addToProbabilityList(5, new fetchItemsWithStringInName(), probabilityArray);
+        addToProbabilityList(4, new insertNewOrder(), probabilityArray);
+        addToProbabilityList(1, new insertNewCustomer(), probabilityArray);
 
         if(probabilityArray.size() != 100) {
             logger.warn(String.format("Summed probability is %d and not 100!", probabilityArray.size()));
@@ -145,11 +150,71 @@ public class RunPhaseGenerator implements Runnable {
         }
     }
 
+    private class fetchItemsSortedByPrice implements Runnable {
+        @Override
+        public void run() {
+            int limit = 50;
+            List<Item> itemList = persistenceController.databaseController.getItemsSortedByPrice(limit);
+            logger.info("Requested list of " + limit + " Items ordered by their price and received " +  itemList.size() + " items from the DB.");
+        }
+    }
+
+    private class fetchItemsSortedByName implements Runnable {
+        @Override
+        public void run() {
+            int limit = 50;
+            List<Item> itemList = persistenceController.databaseController.getItemsSortedByName(limit);
+            logger.info("Requested list of " + limit + " Items ordered by their name and received " +  itemList.size() + " items from the DB.");
+        }
+    }
+
+    private class fetchItemsWithStringInName implements Runnable {
+        @Override
+        public void run() {
+            int limit = 50;
+            String randomTitle = persistenceController.stateController.getRandomItem().i_title;
+            int lowerIndex = seededRandomHelper.getIntBetween(0, randomTitle.length());
+            int upperIndex = seededRandomHelper.getIntBetween(lowerIndex, randomTitle.length());
+            String searchName = randomTitle.substring(lowerIndex, upperIndex);
+            List<Item> itemList = persistenceController.databaseController.getItemsWithName(limit, searchName);
+            logger.info("Requested list of " + limit + " Items that have " + searchName + " in their name and received " +  itemList.size() + " items from the DB.");
+        }
+    }
+
+    private class insertNewCustomer implements Runnable {
+        @Override
+        public void run() {
+            Customer customer = workerGeneratorController.getNewCustomerModelWithRandomData();
+            if(persistenceController.insertCustomer(customer)) {
+                logger.info("Inserted a new Customer into the DB");
+            } else {
+                logger.error("Error while inserting new Customer");
+            }
+        }
+    }
+
+    private class insertNewOrder implements Runnable {
+        @Override
+        public void run() {
+            Order order = workerGeneratorController.getNewOrderModelWithRandomData(persistenceController.stateController.getRandomCustomer());
+            List<Item> itemList = persistenceController.stateController.getRandomItems(seededRandomHelper.getIntBetween(1, 10));
+            List<OrderLine> orderLineList = workerGeneratorController.getNewOrderLineModelList(order, itemList);
+            if(persistenceController.insertOrderWithOrderLines(order, orderLineList)) {
+                logger.info("Inserted a new Order with OrderLines into the DB");
+            }
+            else {
+                logger.error("Errow hile inserting new Order with Orderlines");
+            }
+        }
+    }
+
     private void addToProbabilityList(int percentage, Runnable function, ArrayList<Runnable> probabilityList) {
         for (int i = 0; i < percentage; i++) {
             probabilityList.add(function);
         }
     }
+
+
 
 }
 

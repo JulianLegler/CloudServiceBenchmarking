@@ -244,24 +244,6 @@ class BenchmarkDAO {
         return databaseTableModelList;
     }
 
-    /**
-     * Helper method called by 'testRetryHandling'.  It simply issues
-     * a "SELECT 1" inside the transaction to force a retry.  This is
-     * necessary to take the connection's session out of the AutoRetry
-     * state, since otherwise the other statements in the session will
-     * be retried automatically, and the client (us) will not see a
-     * retry error. Note that this information is taken from the
-     * following test:
-     * https://github.com/cockroachdb/cockroach/blob/master/pkg/sql/logictest/testdata/logic_test/manual_retry
-     *
-     * @param connection Connection
-     */
-    private void forceRetry(Connection connection) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT 1")) {
-            statement.executeQuery();
-        }
-    }
-
     public List<? extends DatabaseTableModel> getAllOfObjectTypeFromDB(DatabaseTableModel databaseTableModel) {return getAllOfObjectTypeFromDB(databaseTableModel, "");}
 
     public boolean bulkInsertCustomersToDB(List<Customer> customerList) {
@@ -354,6 +336,12 @@ class BenchmarkDAO {
     }
 
     public List<Item> getItemsFromDB(List<Item> itemList) { return (List<Item>) getAllOfObjectTypeFromDB(itemList.get(0), String.format("WHERE i_id IN ('%s')", itemList.stream().map(i -> i.i_id).collect(Collectors.joining("','")))); }
+
+    public List<Item> getItemsFromDBOrderedByPrice(int limit) { return (List<Item>) getAllOfObjectTypeFromDB(new Item(), String.format("ORDER BY i_cost LIMIT %d", limit)); }
+
+    public List<Item> getItemsFromDBOrderedByName(int limit) { return (List<Item>) getAllOfObjectTypeFromDB(new Item(), String.format("ORDER BY i_title LIMIT %d", limit)); }
+
+    public List<Item> getItemsFromDBWhereNameContains(int limit, String nameContainsString) { return (List<Item>) getAllOfObjectTypeFromDB(new Item(), String.format("WHERE i_title LIKE '%%%s%%' LIMIT %d", nameContainsString, limit)); }
 
     public List<Customer> getAllCustomersFromDB() {
         return (List<Customer>) getAllOfObjectTypeFromDB(new Customer());
