@@ -89,16 +89,38 @@ class BenchmarkDAO {
             connection.setAutoCommit(false);
 
             try (PreparedStatement pstmt = connection.prepareStatement(databaseTableModelList.get(0).getSQLInsertString())) {
+                List<WorkloadQuery> workloadQueryListNotCommitted = new ArrayList<>();
                 int counter = 0;
                 for (DatabaseTableModel databaseTableModel : databaseTableModelList) {
                     counter++;
                     databaseTableModel.fillStatement(pstmt);
                     sqlLog.add(pstmt.toString());
-                    workloadQueryController.add(pstmt.toString(), "", "");
                     logger.trace(pstmt.toString());
+
                     pstmt.addBatch();
+                    // its a little bit trickier to track the commit time here
+                    Date now = new Date(System.currentTimeMillis());
+                    String timestampBeforeCommit = sdf.format(now);
+
+                    WorkloadQuery workloadQueryNotCommitted = new WorkloadQuery();
+                    workloadQueryNotCommitted.timestampBeforeCommit = timestampBeforeCommit;
+                    workloadQueryNotCommitted.sqlString = pstmt.toString();
+                    workloadQueryListNotCommitted.add(workloadQueryNotCommitted);
+
                     if (counter % batchSize == 0 || counter == databaseTableModelList.size()) {
                         int[] count = pstmt.executeBatch();
+
+                        now = new Date(System.currentTimeMillis());
+                        String timestampAfterCommit = sdf.format(now);
+
+                        // after commit, go for each previously saved object and add it to the actual list with the commit timestamp
+                        workloadQueryListNotCommitted.forEach(workloadQuery -> {
+                            workloadQueryController.add(workloadQuery.sqlString, workloadQuery.timestampBeforeCommit, timestampAfterCommit);
+                        });
+
+                        workloadQueryListNotCommitted.clear();
+
+
                         logger.trace(String.format("\nBenchmarkDAO.bulkInsertObjectsToDB:\n    '%s'\n", pstmt));
                         logger.trace(String.format("    => %s row(s) updated in this batch\n", count.length));
                     }

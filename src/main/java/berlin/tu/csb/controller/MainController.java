@@ -35,8 +35,8 @@ public class MainController {
         }
 
         BenchmarkConfig benchmarkConfig = new BenchmarkConfig();
-        benchmarkConfig.dbCustomerInsertsLoadPhase = 100;
-        benchmarkConfig.dbItemInsertsLoadPhase = 100 ;
+        benchmarkConfig.dbCustomerInsertsLoadPhase = 1000;
+        benchmarkConfig.dbItemInsertsLoadPhase = 200 ;
         benchmarkConfig.dbOrderInsertsLoadPhase = (long)(benchmarkConfig.dbCustomerInsertsLoadPhase * 1.2);
         benchmarkConfig.threadCountLoad = 2;
         benchmarkConfig.threadCountRun = 10;
