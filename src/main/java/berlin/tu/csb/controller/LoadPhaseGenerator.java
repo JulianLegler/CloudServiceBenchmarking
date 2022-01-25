@@ -35,28 +35,28 @@ public class LoadPhaseGenerator implements Runnable {
         // Coordination Phase: All threads wait until the set time has come
         logger.info("thread started");
         //logger.error("Test error");
-        while (persistenceController.stateController.getCustomerListSize() < benchmarkConfig.dbCustomerInsertsLoadPhase
-                || persistenceController.stateController.getItemListSize() < benchmarkConfig.dbItemInsertsLoadPhase
-                || persistenceController.stateController.getOrderSize() < benchmarkConfig.dbOrderInsertsLoadPhase) {
+        while (persistenceController.stateController.getCustomerListSize() < benchmarkConfig.dbCustomerInsertsLoadPhase / benchmarkConfig.threadCountLoad
+                || persistenceController.stateController.getItemListSize() < benchmarkConfig.dbItemInsertsLoadPhase / benchmarkConfig.threadCountLoad
+                || persistenceController.stateController.getOrderSize() < benchmarkConfig.dbOrderInsertsLoadPhase / benchmarkConfig.threadCountLoad) {
 
-            if(persistenceController.stateController.getCustomerListSize() < benchmarkConfig.dbCustomerInsertsLoadPhase) {
-                logger.info("Inserting " + benchmarkConfig.dbCustomerInsertsLoadPhase + " Customer to the DB");
+            if(persistenceController.stateController.getCustomerListSize() < benchmarkConfig.dbCustomerInsertsLoadPhase / benchmarkConfig.threadCountLoad) {
+                logger.info("Inserting " + benchmarkConfig.dbCustomerInsertsLoadPhase / benchmarkConfig.threadCountLoad + " Customer to the DB");
                 if(!workerGeneratorController.bulkInsertNewCustomers(benchmarkConfig.dbCustomerInsertsLoadPhase)) {
                     logger.error("Error while running bulkInsertNewCustomers");
                 }
                 continue;
             }
 
-            if(persistenceController.stateController.getItemListSize() < benchmarkConfig.dbItemInsertsLoadPhase) {
-                logger.info("Inserting " + benchmarkConfig.dbItemInsertsLoadPhase + " Items to the DB");
+            if(persistenceController.stateController.getItemListSize() < benchmarkConfig.dbItemInsertsLoadPhase / benchmarkConfig.threadCountLoad) {
+                logger.info("Inserting " + benchmarkConfig.dbItemInsertsLoadPhase / benchmarkConfig.threadCountLoad + " Items to the DB");
                 if(!workerGeneratorController.bulkInsertNewItems(benchmarkConfig.dbItemInsertsLoadPhase)) {
                     logger.error("Error while running bulkInsertNewItems");
                 }
                 continue;
             }
 
-            if(persistenceController.stateController.getOrderSize() < benchmarkConfig.dbOrderInsertsLoadPhase) {
-                logger.info("Inserting " + benchmarkConfig.dbOrderInsertsLoadPhase + " Orders to the DB");
+            if(persistenceController.stateController.getOrderSize() < benchmarkConfig.dbOrderInsertsLoadPhase / benchmarkConfig.threadCountLoad) {
+                logger.info("Inserting " + benchmarkConfig.dbOrderInsertsLoadPhase / benchmarkConfig.threadCountLoad + " Orders to the DB");
                 if(!workerGeneratorController.bulkInsertNewOrdersWithOrderLines(benchmarkConfig.dbOrderInsertsLoadPhase)) {
                     logger.error("Error while running bulkInsertNewOrdersWithOrderLines");
                 }

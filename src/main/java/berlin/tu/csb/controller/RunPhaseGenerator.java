@@ -1,16 +1,16 @@
 package berlin.tu.csb.controller;
 
-import berlin.tu.csb.model.Customer;
-import berlin.tu.csb.model.Item;
-import berlin.tu.csb.model.Order;
-import berlin.tu.csb.model.OrderLine;
+import berlin.tu.csb.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -25,17 +25,20 @@ public class RunPhaseGenerator implements Runnable {
     SeededRandomHelper seededRandomHelper;
     PersistenceController persistenceController;
     Logger logger = LogManager.getLogger(RunPhaseGenerator.class);
+    BenchmarkConfig benchmarkConfig;
 
     ArrayList<Item> topSellerItems;
 
-    public RunPhaseGenerator(PersistenceController persistenceController, SeededRandomHelper seededRandomHelper, long startTime, long runTimeInSeconds, long endTime) {
+    public RunPhaseGenerator(PersistenceController persistenceController, SeededRandomHelper seededRandomHelper, long startTime, long runTimeInSeconds, long endTime, BenchmarkConfig benchmarkConfig) {
         this.persistenceController = persistenceController;
         this.workerGeneratorController = new WorkerGeneratorController(seededRandomHelper, persistenceController);
         this.seededRandomHelper = seededRandomHelper;
         this.startTime = startTime;
         this.runTimeInSeconds = runTimeInSeconds;
         this.endTime = endTime;
+        this.benchmarkConfig = benchmarkConfig;
     }
+
 
     @Override
     public void run() {
@@ -81,16 +84,19 @@ public class RunPhaseGenerator implements Runnable {
 
         // Create a Array filled with the methods that should run. Place them in there multiple times depending on the probability they should get picked afterwards
         ArrayList<Runnable> probabilityArray = new ArrayList<>();
-        addToProbabilityList(40, new fetchRandomTopSellerItem(), probabilityArray);
-        addToProbabilityList(20, new fetchRandomItem(), probabilityArray);
-        addToProbabilityList(10, new fetchRandomCustomer(), probabilityArray);
-        addToProbabilityList(5, new fetchOrdersFromRandomCustomer(), probabilityArray);
-        addToProbabilityList(5, new fetchOrderLinesFromRandomOrder(), probabilityArray);
-        addToProbabilityList(5, new fetchItemsSortedByName(), probabilityArray);
-        addToProbabilityList(5, new fetchItemsSortedByPrice(), probabilityArray);
-        addToProbabilityList(5, new fetchItemsWithStringInName(), probabilityArray);
-        addToProbabilityList(4, new insertNewOrder(), probabilityArray);
-        addToProbabilityList(1, new insertNewCustomer(), probabilityArray);
+
+        // Go through the map and create objects for the configured methods that are in inner classes, so it is more complicated to instantiate
+        benchmarkConfig.useCasesProbabilityDistribution.forEach((key, value) -> {
+            try {
+                Class classNameOfInnerClass = Class.forName(key);
+                Constructor constructorForNewInnerClass = classNameOfInnerClass.getDeclaredConstructor(RunPhaseGenerator.class);
+                Object newObjectOfInnerClass = constructorForNewInnerClass.newInstance(this);
+                addToProbabilityList(value, (Runnable) newObjectOfInnerClass, probabilityArray);
+            } catch (Exception e) {
+                e.printStackTrace();
+                logger.error("Error while creating object from class " + key + " for probability list from config.");
+            }
+        });
 
         if(probabilityArray.size() != 100) {
             logger.warn(String.format("Summed probability is %d and not 100!", probabilityArray.size()));

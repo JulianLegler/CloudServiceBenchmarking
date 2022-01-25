@@ -4,6 +4,7 @@ import berlin.tu.csb.model.BenchmarkConfig;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,9 +35,53 @@ public class MainController {
         }
 
         BenchmarkConfig benchmarkConfig = new BenchmarkConfig();
-        benchmarkConfig.dbCustomerInsertsLoadPhase = 100 / threadCount;
-        benchmarkConfig.dbItemInsertsLoadPhase = 100 / threadCount;
+        benchmarkConfig.dbCustomerInsertsLoadPhase = 100;
+        benchmarkConfig.dbItemInsertsLoadPhase = 100 ;
         benchmarkConfig.dbOrderInsertsLoadPhase = (long)(benchmarkConfig.dbCustomerInsertsLoadPhase * 1.2);
+        benchmarkConfig.threadCountLoad = 2;
+        benchmarkConfig.threadCountRun = 10;
+        benchmarkConfig.seed = 2122;
+        benchmarkConfig.minRunTimeOfRunPhaseInMinutes = 1;
+        benchmarkConfig.initialWaitTimeForCoordinationInSeconds = 5;
+        benchmarkConfig.useCasesProbabilityDistribution = new LinkedHashMap<>();
+        benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchRandomTopSellerItem", 40);
+        benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchRandomItem", 20);
+        benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchRandomCustomer", 10);
+        benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchOrdersFromRandomCustomer", 5);
+        benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchOrderLinesFromRandomOrder", 5);
+        benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchItemsSortedByName", 5);
+        benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchItemsSortedByPrice", 5);
+        benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchItemsWithStringInName", 5);
+        benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$insertNewOrder", 4);
+        benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$insertNewCustomer", 1);
+
+
+        Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+        String json = gson.toJson(benchmarkConfig);
+        Path filePath = Paths.get(System.getProperty("user.dir"), "workload", dateString, "config.json");
+        try {
+            Files.createDirectories(filePath.getParent());
+            Files.writeString(filePath, json, StandardOpenOption.CREATE_NEW);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        benchmarkConfig = null;
+
+
+        String readedJson = null;
+        try {
+            readedJson = Files.readString(filePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        benchmarkConfig = gson.fromJson(readedJson, BenchmarkConfig.class);
+
+
+
+
+
 
         String[] serverAddresses = content.split(",");
 
@@ -54,28 +99,22 @@ public class MainController {
     }
 
     private static void runRunPhase(String[] serverAddresses, BenchmarkConfig benchmarkConfig) {
-        long seed = 2122;
-
-
         long t1_1 = System.currentTimeMillis();
-        long startTime = System.currentTimeMillis() + 5000;
-        long runTimeInSeconds = 60 * 1;
+        long startTime = System.currentTimeMillis() + benchmarkConfig.initialWaitTimeForCoordinationInSeconds * 1000;
+        long runTimeInSeconds = 60 * benchmarkConfig.minRunTimeOfRunPhaseInMinutes;
         long endTime = startTime + runTimeInSeconds * 1000;
-
-        threadCount = 10;
-
 
         List<Thread> threadList = new ArrayList<>();
         List<PersistenceController> persistenceControllerList = new ArrayList<>();
 
-        for (int i = 1; i <= threadCount; i++) {
+        for (int i = 1; i <= benchmarkConfig.threadCountRun; i++) {
             String pickedServerAddress = serverAddresses[i % serverAddresses.length];
 
             // Have a PersistenceController per thread to manage the current database part that is used by this thread so they dont interfere with each other
-            SeededRandomHelper seededRandomHelper = new SeededRandomHelper(seed+i);
+            SeededRandomHelper seededRandomHelper = new SeededRandomHelper(benchmarkConfig.seed+i);
             PersistenceController persistenceController = new PersistenceController(new DatabaseController("tpc_w_light", "root", 26257, pickedServerAddress), new StateController(seededRandomHelper));
             persistenceControllerList.add(persistenceController);
-            RunPhaseGenerator runPhaseGenerator = new RunPhaseGenerator(persistenceController, seededRandomHelper, startTime, runTimeInSeconds, endTime);
+            RunPhaseGenerator runPhaseGenerator = new RunPhaseGenerator(persistenceController, seededRandomHelper, startTime, runTimeInSeconds, endTime, benchmarkConfig);
             //workloadGenerator.run();
 
             Thread thread = new Thread(runPhaseGenerator);
@@ -135,9 +174,6 @@ public class MainController {
 
 
     private static void runLoadPhase(String[] serverAddresses, BenchmarkConfig benchmarkConfig) {
-        long seed = 2122;
-
-
         long t1_1 = System.currentTimeMillis();
         long startTime = System.currentTimeMillis() + 5000;
         long runTimeInSeconds = 60 * 1;
@@ -147,11 +183,11 @@ public class MainController {
         List<Thread> threadList = new ArrayList<>();
         List<PersistenceController> persistenceControllerList = new ArrayList<>();
 
-        for (int i = 1; i <= threadCount; i++) {
+        for (int i = 1; i <= benchmarkConfig.threadCountLoad; i++) {
             String pickedServerAddress = serverAddresses[i % serverAddresses.length];
 
             // Have a PersistenceController per thread to manage the current database part that is used by this thread so they dont interfere with each other
-            SeededRandomHelper seededRandomHelper = new SeededRandomHelper(seed+i);
+            SeededRandomHelper seededRandomHelper = new SeededRandomHelper(benchmarkConfig.seed-i);
             PersistenceController persistenceController = new PersistenceController(new DatabaseController("tpc_w_light", "root", 26257, pickedServerAddress), new StateController(seededRandomHelper));
             persistenceControllerList.add(persistenceController);
             LoadPhaseGenerator loadPhaseGenerator = new LoadPhaseGenerator(persistenceController, seededRandomHelper, benchmarkConfig);
