@@ -1,26 +1,23 @@
 package berlin.tu.csb.controller;
 
-import berlin.tu.csb.model.BenchmarkConfig;
 import berlin.tu.csb.model.WorkloadQuery;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.util.Pair;
-import org.apache.logging.log4j.core.util.KeyValuePair;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class AnalyzeController {
 
@@ -33,14 +30,18 @@ public class AnalyzeController {
         workloadQueryMap.forEach((key, value) -> {
             DescriptiveStatistics descriptiveStatistics = new DescriptiveStatistics();
             value.forEach((workloadQuery -> {
-                if (!workloadQuery.timestampBeforeCommit.isBlank()) { // TODO: remove when fixed in bulk insert orderlines
-                    descriptiveStatistics.addValue(getDifferenceOfTimestampsInMilliseconds(workloadQuery.timestampBeforeCommit, workloadQuery.timestampAfterCommit));
-                    descriptiveStatisticsAll.addValue(getDifferenceOfTimestampsInMilliseconds(workloadQuery.timestampBeforeCommit, workloadQuery.timestampAfterCommit));
-                }
+            if (!workloadQuery.timestampBeforeCommit.isBlank()) { // TODO: remove when fixed in bulk insert orderlines
+
+                double rtt = getDifferenceOfTimestampsInMilliseconds(workloadQuery.timestampBeforeCommit, workloadQuery.timestampAfterCommit);
+                descriptiveStatistics.addValue(rtt);
+                descriptiveStatisticsAll.addValue(rtt);
+            }
             }));
+            System.out.println(Arrays.toString(descriptiveStatistics.getValues()));
             System.out.printf("Calculating the Values for %s with %d total entries. Min value: %f, Max value: %f, Average Value: %f\n", key, descriptiveStatistics.getN(), descriptiveStatistics.getMin(), descriptiveStatistics.getMax(), descriptiveStatistics.getMean());
 
         });
+        System.out.println(Arrays.toString(descriptiveStatisticsAll.getValues()));
         System.out.printf("Values for all raw sets with %d total entries. Min value: %f, Max value: %f, Average Value: %f\n", descriptiveStatisticsAll.getN(), descriptiveStatisticsAll.getMin(), descriptiveStatisticsAll.getMax(), descriptiveStatisticsAll.getMean());
 
 
@@ -53,13 +54,19 @@ public class AnalyzeController {
         Map<Long, Long> mapOfRTTPerSecondWithAverages = new LinkedHashMap<>();
         DescriptiveStatistics rollingDS = new DescriptiveStatistics();
 
+        AtomicInteger counter = new AtomicInteger();
         mapOfPingsPerSecond.forEach((aLong, longs) -> {
-            mapOfRTTPerSecondWithAverages.put(aLong, longs.stream().mapToLong(Long::longValue).sum() / longs.size());
-            rollingDS.addValue(longs.stream().mapToLong(Long::longValue).sum() / longs.size());
+            // cut of warmup and cooldown
+            Instant currentTime = Instant.ofEpochMilli(aLong);
+            if(currentTime.isAfter(Instant.ofEpochMilli(minMaxPair.getKey()).plusSeconds(10)) && currentTime.isBefore(Instant.ofEpochMilli(minMaxPair.getValue()).minusSeconds(10))) {
+                mapOfRTTPerSecondWithAverages.put(aLong, longs.stream().mapToLong(Long::longValue).sum() / longs.size());
+                rollingDS.addValue(longs.stream().mapToLong(Long::longValue).sum() / longs.size());
+            }
+            counter.getAndIncrement();
         });
 
-
-        System.out.printf("Important values for normalized time series. min:%f max:%f average:%f\n", rollingDS.getMin(), rollingDS.getMax(), rollingDS.getMean());
+        System.out.println(Arrays.toString(rollingDS.getValues()));
+        System.out.printf("Important values for normalized time series. min:%f max:%f average:%f 99th percentile:%f\n", rollingDS.getMin(), rollingDS.getMax(), rollingDS.getMean(), rollingDS.getPercentile(99));
 
 
 
