@@ -268,6 +268,82 @@ class BenchmarkDAO {
 
     public List<? extends DatabaseTableModel> getAllOfObjectTypeFromDB(DatabaseTableModel databaseTableModel) {return getAllOfObjectTypeFromDB(databaseTableModel, "");}
 
+    public boolean updateItemPriceToDB(Item item) {
+        try (Connection connection = ds.getConnection()) {
+            try (PreparedStatement pstmt = connection.prepareStatement(String.format(Locale.US, "UPDATE item SET i_srp = %.2f, i_cost = %.2f WHERE i_id = '%s'", item.i_srp, item.i_cost, item.i_id))) {
+
+                sqlLog.add(pstmt.toString());
+                logger.trace(pstmt.toString());
+
+
+                Date now = new Date(System.currentTimeMillis());
+                String timestampBeforeCommit = sdf.format(now);
+
+                pstmt.execute();
+
+                now = new Date(System.currentTimeMillis());
+                String timestampAfterCommit = sdf.format(now);
+
+                workloadQueryController.add(pstmt.toString(), timestampBeforeCommit, timestampAfterCommit);
+
+                pstmt.close();
+                connection.close();
+            } catch (SQLException e) {
+                System.out.printf("BenchmarkDAO.updateItemPriceToDB ERROR: { state => %s, cause => %s, message => %s }\n",
+                        e.getSQLState(), e.getCause(), e.getMessage());
+                return false;
+            }
+        } catch (SQLException e) {
+            System.out.printf("BenchmarkDAO.updateItemPriceToDB ERROR: { state => %s, cause => %s, message => %s }\n",
+                    e.getSQLState(), e.getCause(), e.getMessage());
+            return false;
+        }
+        return true;
+    }
+
+    public List<Customer> getAllCustomersWithOpenOrders() {
+        List<Customer> customerList = new ArrayList<>();
+        try (Connection connection = ds.getConnection()) {
+
+            try {
+                Statement statement = connection.createStatement();
+                String sqlStatement = String.format("SELECT * FROM customer INNER JOIN orders ON customer.c_id = orders.c_id AND orders.o_status = 'OPEN'");
+                sqlLog.add(sqlStatement);
+                logger.trace(sqlStatement);
+
+                Date now = new Date(System.currentTimeMillis());
+                String timestampBeforeCommit = sdf.format(now);
+
+                ResultSet rs = statement.executeQuery(sqlStatement);
+
+                now = new Date(System.currentTimeMillis());
+                String timestampAfterCommit = sdf.format(now);
+
+                workloadQueryController.add(sqlStatement, timestampBeforeCommit, timestampAfterCommit);
+
+                while (rs.next()) {
+                    Customer customer = new Customer();
+                    customer.initWithResultSet(rs);
+                    customerList.add(customer);
+                }
+                rs.close();
+                statement.close();
+                connection.close();
+            } catch (Exception e) {
+                System.err.println(e.getClass().getName() + ": " + e.getMessage());
+                System.exit(0);
+            }
+        } catch (SQLException e) {
+            System.out.printf("BenchmarkDAO.getAllCustomersWithOpenOrders ERROR: { state => %s, cause => %s, message => %s }\n",
+                    e.getSQLState(), e.getCause(), e.getMessage());
+        }
+        return customerList;
+    }
+
+    /*
+            start of wrappers
+     */
+
     public boolean bulkInsertCustomersToDB(List<Customer> customerList) {
         return bulkInsertObjectsToDB(customerList);
     }

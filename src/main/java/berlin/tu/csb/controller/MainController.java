@@ -44,7 +44,7 @@ public class MainController {
         benchmarkConfig.minRunTimeOfRunPhaseInMinutes = 1;
         benchmarkConfig.initialWaitTimeForCoordinationInSeconds = 5;
         benchmarkConfig.useCasesProbabilityDistribution = new LinkedHashMap<>();
-        benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchRandomTopSellerItem", 40);
+        benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchRandomTopSellerItem", 35);
         benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchRandomItem", 20);
         benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchRandomCustomer", 10);
         benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchOrdersFromRandomCustomer", 5);
@@ -52,8 +52,12 @@ public class MainController {
         benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchItemsSortedByName", 5);
         benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchItemsSortedByPrice", 5);
         benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchItemsWithStringInName", 5);
-        benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$insertNewOrder", 4);
+        benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$insertNewOrder", 6);
         benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$insertNewCustomer", 1);
+        benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchAllCustomersWithOpenOrders", 1);
+        benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$updateItemPrice", 2);
+
+
 
 
         Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();

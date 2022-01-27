@@ -214,6 +214,31 @@ public class RunPhaseGenerator implements Runnable {
         }
     }
 
+    private class fetchAllCustomersWithOpenOrders implements Runnable {
+        @Override
+        public void run() {
+            List<Customer> customerList = persistenceController.databaseController.getAllCustomersWithOpenOrders();
+            logger.info("Requested list of all customers with open orders and retrieved " +  customerList.size() + " customers from the DB.");
+        }
+    }
+
+    private class updateItemPrice implements Runnable {
+        @Override
+        public void run() {
+            Item item = persistenceController.stateController.getRandomItem();
+            item.i_srp += 10;
+            item.i_cost += 10;
+            if(persistenceController.updateItemPrice(item)) {
+                logger.info("Updated a Items price into the DB");
+            }
+            else {
+                logger.error("Errow hile updating an Items price");
+            }
+        }
+    }
+
+
+
     private void addToProbabilityList(int percentage, Runnable function, ArrayList<Runnable> probabilityList) {
         for (int i = 0; i < percentage; i++) {
             probabilityList.add(function);

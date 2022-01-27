@@ -44,6 +44,14 @@ public class PersistenceController {
             return false;
     }
 
+    public boolean updateItemPrice(Item item) {
+        if(databaseController.updateItemPrice(item)) {
+            stateController.addItem(item);
+            return true;
+        }
+        return false;
+    }
+
     private boolean insertOrder(Order order) {
         if(databaseController.insertOrder(order)) {
             stateController.addOrder(order);
@@ -144,4 +152,6 @@ public class PersistenceController {
         }
         return true;
     }
+
+
 }

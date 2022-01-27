@@ -22,6 +22,7 @@ public class Order implements DatabaseTableModel{
     public String o_ship_addr;
     public String o_status;
 
+
     public Order() {
 
     }
@@ -36,7 +37,7 @@ public class Order implements DatabaseTableModel{
         o_ship_type = seededRandomHelper.getStringWithLength(3, 10);
         o_ship_date = new Timestamp(o_date.getTime() + seededRandomHelper.getLongBetween(172800000L, 432000000L)); // 1-5 days after order
         o_ship_addr = seededRandomHelper.getStringWithLength(25, 100);
-        o_status = seededRandomHelper.getStringWithLength(2, 16);
+        o_status = getRandomStatus(seededRandomHelper);
         return this;
     }
 
@@ -100,5 +101,18 @@ public class Order implements DatabaseTableModel{
                 ", o_ship_addr='" + o_ship_addr + '\'' +
                 ", o_status='" + o_status + '\'' +
                 '}';
+    }
+
+    private String getRandomStatus(SeededRandomHelper seededRandomHelper) {
+        int dice = seededRandomHelper.getIntBetween(1, 100);
+        if(dice <= 1) {
+            return "OPEN";
+        }
+        if(dice <= 2) {
+            return "CLOSED";
+        }
+        else {
+            return "FINISHED";
+        }
     }
 }

@@ -128,4 +128,8 @@ public class DatabaseController {
     public List<Item> getItemsSortedByName(int limit) { return dao.getItemsFromDBOrderedByName(limit); }
 
     public List<Item> getItemsWithName(int limit, String searchName) { return dao.getItemsFromDBWhereNameContains(limit, searchName); }
+
+    public List<Customer> getAllCustomersWithOpenOrders() { return dao.getAllCustomersWithOpenOrders(); }
+
+    public boolean updateItemPrice(Item item) { return dao.updateItemPriceToDB(item); }
 }
