@@ -1,6 +1,7 @@
 variable "gcp_service_account_path" {}
 variable "gcp_project_id" {}
-variable "gcp_region" {}
+variable "gcp_region" { default = "europe-west3" }
+variable "gcp_availability_zones" { default = ["europe-west3-a", "europe-west3-b", "europe-west3-c"] }
 
 variable "instances" { default = "3" }
 

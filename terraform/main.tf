@@ -25,9 +25,9 @@ resource "google_compute_network" "main" {
 
 resource "google_compute_instance" "cockroach_nodes" {
   count        = var.instances
-  name         = "${var.prefix}-gcp-vm-${count.index + 1}"
+  name         = "${var.prefix}-gcp-sut-vm-${count.index + 1}"
   machine_type = var.gcp_machine_type
-  zone         = "${var.gcp_region}-b"
+  zone         = var.gcp_availability_zones[count.index]
 
   boot_disk {
     initialize_params {
@@ -67,6 +67,47 @@ resource "google_compute_instance" "cockroach_nodes" {
     ]
   }
 }
+
+
+resource "google_compute_instance" "benchmark_nodes" {
+  count        = var.instances
+  name         = "${var.prefix}-gcp-bench-vm-${count.index + 1}"
+  machine_type = var.gcp_machine_type
+  zone         = var.gcp_availability_zones[count.index]
+
+  boot_disk {
+    initialize_params {
+      image = "debian-cloud/debian-10"
+    }
+  }
+
+  network_interface {
+    network = google_compute_network.main.self_link
+    access_config {
+      #nat_ip = google_compute_address.cockroach_nodes[count.index].address
+    }
+  }
+
+  metadata = {
+    ssh-keys = "csb:${file(var.path_public_key)}"
+  }
+
+  connection {
+    type = "ssh"
+    host = self.network_interface.0.access_config.0.nat_ip
+    user = "csb"
+    port = 22
+    #    agent = true
+    private_key = file(var.path_private_key)
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "echo Hello World!"
+    ]
+  }
+}
+
 
 resource "null_resource" "init_cockroach" {
 
