@@ -32,6 +32,15 @@ dependencies {
 
 }
 
+jar {
+    manifest {
+        attributes 'Main-Class': 'berlin.tu.csb.controller.MainController'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
 test {
     useJUnitPlatform()
 }
