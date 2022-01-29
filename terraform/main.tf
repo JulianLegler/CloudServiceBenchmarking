@@ -31,7 +31,7 @@ resource "google_compute_instance" "cockroach_nodes" {
 
   boot_disk {
     initialize_params {
-      image = "debian-cloud/debian-10"
+      image = "debian-cloud/debian-11"
     }
   }
 
@@ -60,9 +60,9 @@ resource "google_compute_instance" "cockroach_nodes" {
       #"sudo apt update && sudo apt upgrade -y",
       # follows https://www.cockroachlabs.com/docs/v21.2/install-cockroachdb-linux
       "curl https://binaries.cockroachdb.com/cockroach-v21.2.2.linux-amd64.tgz | tar -xz && sudo cp -i cockroach-v21.2.2.linux-amd64/cockroach /usr/local/bin/",
-      "mkdir -p /usr/local/lib/cockroach",
-      "cp -i cockroach-v21.2.2.linux-amd64/lib/libgeos.so /usr/local/lib/cockroach/",
-      "cp -i cockroach-v21.2.2.linux-amd64/lib/libgeos_c.so /usr/local/lib/cockroach/",
+      #"mkdir -p /usr/local/lib/cockroach",
+      #"cp -i cockroach-v21.2.2.linux-amd64/lib/libgeos.so /usr/local/lib/cockroach/",
+      #"cp -i cockroach-v21.2.2.linux-amd64/lib/libgeos_c.so /usr/local/lib/cockroach/",
       "cockroach start --insecure --advertise-addr=${self.network_interface.0.network_ip} --join=${google_compute_instance.cockroach_nodes.0.network_interface.0.network_ip} --background"
     ]
   }
@@ -77,7 +77,7 @@ resource "google_compute_instance" "benchmark_nodes" {
 
   boot_disk {
     initialize_params {
-      image = "debian-cloud/debian-10"
+      image = "debian-cloud/debian-11"
     }
   }
 
@@ -101,14 +101,27 @@ resource "google_compute_instance" "benchmark_nodes" {
     private_key = file(var.path_private_key)
   }
 
+  provisioner "file" {
+    source      = var.local_path_to_jar_file
+    destination = var.remote_path_to_jar_file
+  }
+
+  // Create a file that already contain the start command with all needed parameter
   provisioner "remote-exec" {
     inline = [
-      "echo Hello World!"
+      "sudo apt install openjdk-17-jre -y",
+      "echo 'java -jar ${var.remote_path_to_jar_file} ${google_compute_instance.cockroach_nodes[count.index].network_interface.0.access_config.0.nat_ip} ${count.index * 1000} ${var.benchmark_run_duration_in_minutes} run' > runBenchmark.sh",
+      "chmod +x runBenchmark.sh",
+      "mkdir workload",
+      "echo '${self.name}, ${self.machine_type}, ${self.zone}, ${self.network_interface.0.access_config.0.nat_ip}, ${self.boot_disk[0].initialize_params[0].image}' > workload/machine.txt"
     ]
   }
 }
 
 
+/*
+    Only do this on one cockroach machine to init the cluster. All machines must be aware of this machine via the join string in the startup parameter
+*/
 resource "null_resource" "init_cockroach" {
 
   triggers = {
@@ -126,7 +139,7 @@ resource "null_resource" "init_cockroach" {
 
   // copy our example script to the server
    provisioner "file" {
-     source      = "../src/main/resources/dbinit.sql"
+     source      = var.path_to_sqlinit_file
      destination = "dbinit.sql"
    }
 

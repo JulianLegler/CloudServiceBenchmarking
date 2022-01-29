@@ -21,18 +21,39 @@ public class MainController {
     static Date now = new Date(System.currentTimeMillis());
     static String dateString = sdf.format(now);
 
+
     public static void main(String[] args) {
+        String[] serverAddresses = new String[1];
+        long seed = 2122;
+        int runTimeInMinutes = 1;
+        boolean isRunStart = true;
+
         System.out.println("Present Project Directory : "+ System.getProperty("user.dir"));
 
-
-        String content = "";
-        try {
-            content = new String(Files.readAllBytes(Paths.get(System.getProperty("user.dir")+"\\terraform\\public_ip.csv")));
-        } catch (IOException e) {
-            System.out.println("public_ip.csv not present. Are the servers set up correctly?");
-            e.printStackTrace();
-            System.exit(1);
+        if(args.length < 3 || args.length > 4) {
+            System.out.println("Number of run arguments are not correct. Fallback to local execution mode.");
+            System.out.printf("Correct usage of parameters:%n 1 - server adress%n 2 - seed for pseudo generator as long%n 3 - run time of benchmark in minutes%n 4 - run / load depending on what you want to do (default run)");
+            try {
+                String content = new String(Files.readAllBytes(Paths.get(System.getProperty("user.dir")+"\\terraform\\public_ip.csv")));
+                serverAddresses = content.split(",");
+            } catch (IOException e) {
+                System.out.println("public_ip.csv not present. Are the servers set up correctly?");
+                e.printStackTrace();
+                System.exit(1);
+            }
         }
+        else {
+            serverAddresses[0] = args[0];
+            seed = Long.parseLong(args[1]);
+            runTimeInMinutes = Integer.parseInt(args[2]);
+            if(args[3] != null && args[3].equals("load")) {
+                isRunStart = false;
+            }
+        }
+
+
+
+
 
         BenchmarkConfig benchmarkConfig = new BenchmarkConfig();
         benchmarkConfig.dbCustomerInsertsLoadPhase = 1000;
@@ -40,8 +61,8 @@ public class MainController {
         benchmarkConfig.dbOrderInsertsLoadPhase = (long)(benchmarkConfig.dbCustomerInsertsLoadPhase * 1.2);
         benchmarkConfig.threadCountLoad = 2;
         benchmarkConfig.threadCountRun = 10;
-        benchmarkConfig.seed = 2122;
-        benchmarkConfig.minRunTimeOfRunPhaseInMinutes = 1;
+        benchmarkConfig.seed = seed;
+        benchmarkConfig.minRunTimeOfRunPhaseInMinutes = runTimeInMinutes;
         benchmarkConfig.initialWaitTimeForCoordinationInSeconds = 5;
         benchmarkConfig.useCasesProbabilityDistribution = new LinkedHashMap<>();
         benchmarkConfig.useCasesProbabilityDistribution.put("berlin.tu.csb.controller.RunPhaseGenerator$fetchRandomTopSellerItem", 35);
@@ -87,18 +108,23 @@ public class MainController {
 
 
 
-        String[] serverAddresses = content.split(",");
+
 
         // String pickedServerAddress = serverAddresses[ThreadLocalRandom.current().nextInt(0, serverAddresses.length)];
 
         databaseController = new DatabaseController("tpc_w_light", "root", 26257, serverAddresses[0]);
 
-        databaseController.dao.truncateAllTables();
+        //databaseController.dao.truncateAllTables();
 
 
+        if(!isRunStart) {
+            runLoadPhase(serverAddresses, benchmarkConfig);
+        }
+        else {
+            runRunPhase(serverAddresses, benchmarkConfig);
+        }
 
-        runLoadPhase(serverAddresses, benchmarkConfig);
-        runRunPhase(serverAddresses, benchmarkConfig);
+
 
     }
 
