@@ -13,6 +13,6 @@ variable "path_public_key" { default = "C:\\Users\\Roschy\\.ssh\\ri_key.pub" }
 
 // Application variables
 variable "path_to_sqlinit_file" { default = "../src/main/resources/dbinit.sql"}
-variable "local_path_to_jar_file" { default = "../CloudServiceBenchmarking-1.0-SNAPSHOT.jar"}
+variable "local_path_to_jar_file" { default = "../build/libs/CloudServiceBenchmarking-1.0-SNAPSHOT.jar"}
 variable "remote_path_to_jar_file" { default = "CloudServiceBenchmarking.jar"}
 variable "benchmark_run_duration_in_minutes" { default = "1"}
