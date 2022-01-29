@@ -23,16 +23,18 @@ public class MainController {
 
 
     public static void main(String[] args) {
+        // default values
         String[] serverAddresses = new String[1];
         long seed = 2122;
         int runTimeInMinutes = 1;
         boolean isRunStart = true;
+        int threadCount = 10;
 
         System.out.println("Present Project Directory : "+ System.getProperty("user.dir"));
 
-        if(args.length < 3 || args.length > 4) {
+        if(args.length < 4 || args.length > 5) {
             System.out.println("Number of run arguments are not correct. Fallback to local execution mode.");
-            System.out.printf("Correct usage of parameters:%n 1 - server adress%n 2 - seed for pseudo generator as long%n 3 - run time of benchmark in minutes%n 4 - run / load depending on what you want to do (default run)");
+            System.out.printf("Correct usage of parameters:%n 1 - server adress%n 2 - seed for pseudo generator as long%n 3 - run time of benchmark in minutes%n 4 - amount of threads to run%n 5 - run / load depending on what you want to do (default run)");
             try {
                 String content = new String(Files.readAllBytes(Paths.get(System.getProperty("user.dir")+"\\terraform\\public_ip.csv")));
                 serverAddresses = content.split(",");
@@ -46,7 +48,8 @@ public class MainController {
             serverAddresses[0] = args[0];
             seed = Long.parseLong(args[1]);
             runTimeInMinutes = Integer.parseInt(args[2]);
-            if(args[3] != null && args[3].equals("load")) {
+            threadCount = Integer.parseInt(args[3]);
+            if(args[4] != null && args[4].equals("load")) {
                 isRunStart = false;
             }
         }
@@ -56,11 +59,11 @@ public class MainController {
 
 
         BenchmarkConfig benchmarkConfig = new BenchmarkConfig();
-        benchmarkConfig.dbCustomerInsertsLoadPhase = 1000;
-        benchmarkConfig.dbItemInsertsLoadPhase = 200 ;
+        benchmarkConfig.dbCustomerInsertsLoadPhase = 100000;
+        benchmarkConfig.dbItemInsertsLoadPhase = 2000 ;
         benchmarkConfig.dbOrderInsertsLoadPhase = (long)(benchmarkConfig.dbCustomerInsertsLoadPhase * 1.2);
-        benchmarkConfig.threadCountLoad = 2;
-        benchmarkConfig.threadCountRun = 10;
+        benchmarkConfig.threadCountLoad = threadCount;
+        benchmarkConfig.threadCountRun = threadCount;
         benchmarkConfig.seed = seed;
         benchmarkConfig.minRunTimeOfRunPhaseInMinutes = runTimeInMinutes;
         benchmarkConfig.initialWaitTimeForCoordinationInSeconds = 5;

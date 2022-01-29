@@ -26,7 +26,7 @@ resource "google_compute_network" "main" {
 resource "google_compute_instance" "cockroach_nodes" {
   count        = var.instances
   name         = "${var.prefix}-gcp-sut-vm-${count.index + 1}"
-  machine_type = var.gcp_machine_type
+  machine_type = var.gcp_machine_type_sut
   zone         = var.gcp_availability_zones[count.index]
 
   boot_disk {
@@ -63,7 +63,7 @@ resource "google_compute_instance" "cockroach_nodes" {
       #"mkdir -p /usr/local/lib/cockroach",
       #"cp -i cockroach-v21.2.2.linux-amd64/lib/libgeos.so /usr/local/lib/cockroach/",
       #"cp -i cockroach-v21.2.2.linux-amd64/lib/libgeos_c.so /usr/local/lib/cockroach/",
-      "cockroach start --insecure --advertise-addr=${self.network_interface.0.network_ip} --join=${google_compute_instance.cockroach_nodes.0.network_interface.0.network_ip} --background"
+      "cockroach start --insecure --cache=.30 --max-sql-memory=.30 --advertise-addr=${self.network_interface.0.network_ip} --join=${google_compute_instance.cockroach_nodes.0.network_interface.0.network_ip} --background --locality=region=${var.gcp_region},zone=${self.zone}"
     ]
   }
 }
@@ -72,7 +72,7 @@ resource "google_compute_instance" "cockroach_nodes" {
 resource "google_compute_instance" "benchmark_nodes" {
   count        = var.instances
   name         = "${var.prefix}-gcp-bench-vm-${count.index + 1}"
-  machine_type = var.gcp_machine_type
+  machine_type = var.gcp_machine_type_bench
   zone         = var.gcp_availability_zones[count.index]
 
   boot_disk {
@@ -110,7 +110,7 @@ resource "google_compute_instance" "benchmark_nodes" {
   provisioner "remote-exec" {
     inline = [
       "sudo apt install openjdk-17-jre -y",
-      "echo 'java -jar ${var.remote_path_to_jar_file} ${google_compute_instance.cockroach_nodes[count.index].network_interface.0.access_config.0.nat_ip} ${count.index * 1000} ${var.benchmark_run_duration_in_minutes} run' > runBenchmark.sh",
+      "echo 'java -jar ${var.remote_path_to_jar_file} ${google_compute_instance.cockroach_nodes[count.index].network_interface.0.access_config.0.nat_ip} ${count.index * 1000} ${var.benchmark_run_duration_in_minutes} 100 run' > runBenchmark.sh",
       "chmod +x runBenchmark.sh",
       "mkdir workload",
       "echo '${self.name}, ${self.machine_type}, ${self.zone}, ${self.network_interface.0.access_config.0.nat_ip}, ${self.boot_disk[0].initialize_params[0].image}' > workload/machine.txt"

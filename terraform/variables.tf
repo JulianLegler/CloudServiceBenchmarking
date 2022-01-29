@@ -7,7 +7,9 @@ variable "gcp_availability_zones" { default = ["europe-west3-a", "europe-west3-b
 // Deployment variables
 variable "instances" { default = "3" }
 variable "prefix" { default = "csb" }
-variable "gcp_machine_type" { default = "e2-micro" } // use e2-standard-2 // e2-micro
+variable "gcp_machine_type_bench" { default = "e2-standard-2" } // use e2-standard-2 // e2-micro
+variable "gcp_machine_type_sut" { default = "n2-standard-4" } // 3 suts = n2-standard-4 // 6 suts = n2-standard-2
+
 variable "path_private_key" { default = "C:\\Users\\Roschy\\.ssh\\ri_key" }
 variable "path_public_key" { default = "C:\\Users\\Roschy\\.ssh\\ri_key.pub" }
 
