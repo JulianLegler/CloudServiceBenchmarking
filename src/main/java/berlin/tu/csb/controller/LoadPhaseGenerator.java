@@ -41,7 +41,7 @@ public class LoadPhaseGenerator implements Runnable {
 
             if(persistenceController.stateController.getCustomerListSize() < benchmarkConfig.dbCustomerInsertsLoadPhase / benchmarkConfig.threadCountLoad) {
                 logger.info("Inserting " + benchmarkConfig.dbCustomerInsertsLoadPhase / benchmarkConfig.threadCountLoad + " Customer to the DB");
-                if(!workerGeneratorController.bulkInsertNewCustomers(benchmarkConfig.dbCustomerInsertsLoadPhase)) {
+                if(!workerGeneratorController.bulkInsertNewCustomers(benchmarkConfig.dbCustomerInsertsLoadPhase / benchmarkConfig.threadCountLoad)) {
                     logger.error("Error while running bulkInsertNewCustomers");
                 }
                 continue;
@@ -49,7 +49,7 @@ public class LoadPhaseGenerator implements Runnable {
 
             if(persistenceController.stateController.getItemListSize() < benchmarkConfig.dbItemInsertsLoadPhase / benchmarkConfig.threadCountLoad) {
                 logger.info("Inserting " + benchmarkConfig.dbItemInsertsLoadPhase / benchmarkConfig.threadCountLoad + " Items to the DB");
-                if(!workerGeneratorController.bulkInsertNewItems(benchmarkConfig.dbItemInsertsLoadPhase)) {
+                if(!workerGeneratorController.bulkInsertNewItems(benchmarkConfig.dbItemInsertsLoadPhase / benchmarkConfig.threadCountLoad)) {
                     logger.error("Error while running bulkInsertNewItems");
                 }
                 continue;
@@ -57,7 +57,7 @@ public class LoadPhaseGenerator implements Runnable {
 
             if(persistenceController.stateController.getOrderSize() < benchmarkConfig.dbOrderInsertsLoadPhase / benchmarkConfig.threadCountLoad) {
                 logger.info("Inserting " + benchmarkConfig.dbOrderInsertsLoadPhase / benchmarkConfig.threadCountLoad + " Orders to the DB");
-                if(!workerGeneratorController.bulkInsertNewOrdersWithOrderLines(benchmarkConfig.dbOrderInsertsLoadPhase)) {
+                if(!workerGeneratorController.bulkInsertNewOrdersWithOrderLines(benchmarkConfig.dbOrderInsertsLoadPhase / benchmarkConfig.threadCountLoad)) {
                     logger.error("Error while running bulkInsertNewOrdersWithOrderLines");
                 }
                 continue;
