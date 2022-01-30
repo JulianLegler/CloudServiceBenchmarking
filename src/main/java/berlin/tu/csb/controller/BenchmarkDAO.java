@@ -87,51 +87,72 @@ class BenchmarkDAO {
             // We're managing the commit lifecycle ourselves so we can
             // control the size of our batch inserts.
             connection.setAutoCommit(false);
+            int retryCount = 0;
 
-            try (PreparedStatement pstmt = connection.prepareStatement(databaseTableModelList.get(0).getSQLInsertString())) {
-                List<WorkloadQuery> workloadQueryListNotCommitted = new ArrayList<>();
-                int counter = 0;
-                for (DatabaseTableModel databaseTableModel : databaseTableModelList) {
-                    counter++;
-                    databaseTableModel.fillStatement(pstmt);
-                    sqlLog.add(pstmt.toString());
-                    logger.trace(pstmt.toString());
+            while (retryCount <= MAX_RETRY_COUNT) {
+                try (PreparedStatement pstmt = connection.prepareStatement(databaseTableModelList.get(0).getSQLInsertString())) {
+                    List<WorkloadQuery> workloadQueryListNotCommitted = new ArrayList<>();
+                    int counter = 0;
+                    for (DatabaseTableModel databaseTableModel : databaseTableModelList) {
+                        counter++;
+                        databaseTableModel.fillStatement(pstmt);
+                        sqlLog.add(pstmt.toString());
+                        logger.trace(pstmt.toString());
 
-                    pstmt.addBatch();
-                    // its a little bit trickier to track the commit time here
-                    Date now = new Date(System.currentTimeMillis());
-                    String timestampBeforeCommit = sdf.format(now);
+                        pstmt.addBatch();
+                        // its a little bit trickier to track the commit time here
+                        Date now = new Date(System.currentTimeMillis());
+                        String timestampBeforeCommit = sdf.format(now);
 
-                    WorkloadQuery workloadQueryNotCommitted = new WorkloadQuery();
-                    workloadQueryNotCommitted.timestampBeforeCommit = timestampBeforeCommit;
-                    workloadQueryNotCommitted.sqlString = pstmt.toString();
-                    workloadQueryListNotCommitted.add(workloadQueryNotCommitted);
+                        WorkloadQuery workloadQueryNotCommitted = new WorkloadQuery();
+                        workloadQueryNotCommitted.timestampBeforeCommit = timestampBeforeCommit;
+                        workloadQueryNotCommitted.sqlString = pstmt.toString();
+                        workloadQueryListNotCommitted.add(workloadQueryNotCommitted);
 
-                    if (counter % batchSize == 0 || counter == databaseTableModelList.size()) {
-                        int[] count = pstmt.executeBatch();
+                        if (counter % batchSize == 0 || counter == databaseTableModelList.size()) {
+                            int[] count = pstmt.executeBatch();
 
-                        now = new Date(System.currentTimeMillis());
-                        String timestampAfterCommit = sdf.format(now);
+                            now = new Date(System.currentTimeMillis());
+                            String timestampAfterCommit = sdf.format(now);
 
-                        // after commit, go for each previously saved object and add it to the actual list with the commit timestamp
-                        workloadQueryListNotCommitted.forEach(workloadQuery -> {
-                            workloadQueryController.add(workloadQuery.sqlString, workloadQuery.timestampBeforeCommit, timestampAfterCommit);
-                        });
+                            // after commit, go for each previously saved object and add it to the actual list with the commit timestamp
+                            workloadQueryListNotCommitted.forEach(workloadQuery -> {
+                                workloadQueryController.add(workloadQuery.sqlString, workloadQuery.timestampBeforeCommit, timestampAfterCommit);
+                            });
 
-                        workloadQueryListNotCommitted.clear();
+                            workloadQueryListNotCommitted.clear();
 
 
-                        logger.trace(String.format("\nBenchmarkDAO.bulkInsertObjectsToDB:\n    '%s'\n", pstmt));
-                        logger.trace(String.format("    => %s row(s) updated in this batch\n", count.length));
+                            logger.trace(String.format("\nBenchmarkDAO.bulkInsertObjectsToDB:\n    '%s'\n", pstmt));
+                            logger.trace(String.format("    => %s row(s) updated in this batch\n", count.length));
+                        }
+                    }
+                    connection.commit();
+                    pstmt.close();
+                    connection.close();
+                } catch (SQLException e) {
+                    logger.error(String.format("BenchmarkDAO.bulkInsertObjectsToDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n", databaseTableModelList.get(0).getClass(), e.getSQLState(), e.getCause(), e.getMessage()));
+                    if (RETRY_SQL_STATE.equals(e.getSQLState())) {
+                        // Since this is a transaction retry error, we
+                        // roll back the transaction and sleep a
+                        // little before trying again.  Each time
+                        // through the loop we sleep for a little
+                        // longer than the last time
+                        // (A.K.A. exponential backoff).
+                        System.out.printf("retryable exception occurred:\n    sql state = [%s]\n    message = [%s]\n    retry counter = %s\n", e.getSQLState(), e.getMessage(), retryCount);
+                        connection.rollback();
+                        retryCount++;
+                        int sleepMillis = (int) (Math.pow(2, retryCount) * 100 + new Random().nextInt(100));
+                        System.out.printf("Hit 40001 transaction retry error, sleeping %s milliseconds\n", sleepMillis);
+                        try {
+                            Thread.sleep(sleepMillis);
+                        } catch (InterruptedException ignored) {
+                            // Necessary to allow the Thread.sleep()
+                            // above so the retry loop can continue.
+                        }
+                        return false;
                     }
                 }
-                connection.commit();
-                pstmt.close();
-                connection.close();
-            } catch (SQLException e) {
-                logger.error(String.format("BenchmarkDAO.bulkInsertObjectsToDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n",
-                        databaseTableModelList.get(0).getClass(),e.getSQLState(), e.getCause(), e.getMessage()));
-                return false;
             }
         } catch (SQLException e) {
             logger.error(String.format("BenchmarkDAO.bulkInsertObjectsToDB ERROR: { state => %s, cause => %s, message => %s }\n",

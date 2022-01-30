@@ -4,3 +4,4 @@
 /workload/
 /workload
 /terraform/.terraform.lock.hcl
+providers
