@@ -51,7 +51,7 @@ public class MainController {
                     System.exit(1);
                 }
             }else {
-                serverAddresses[1] = args[1];
+                serverAddresses[0] = args[1];
                 seed = Long.parseLong(args[2]);
                 runTimeInMinutes = Integer.parseInt(args[3]);
                 threadCount = Integer.parseInt(args[4]);
@@ -72,7 +72,7 @@ public class MainController {
                 }
             }
             else {
-                serverAddresses[1] = args[1];
+                serverAddresses[0] = args[1];
                 seed = Long.parseLong(args[2]);
                 dbCustomerInsertsLoadPhase = Integer.parseInt(args[3]);
                 dbItemInsertsLoadPhase = Integer.parseInt(args[4]);
