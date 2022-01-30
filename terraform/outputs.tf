@@ -25,4 +25,8 @@ output "extraction_strings" {
   value = {for k, v in google_compute_instance.benchmark_nodes: k => "sftp -rp -i ${var.path_private_key} csb@${v.network_interface.0.access_config.0.nat_ip}:workload/ ./workload_${v.name}/"}
 }
 
+output "link_to_sut_gui" {
+  value = "http://${google_compute_instance.cockroach_nodes.0.network_interface.0.access_config.0.nat_ip}:8080"
+}
+
 

@@ -28,6 +28,7 @@ resource "google_compute_instance" "cockroach_nodes" {
   name         = "${var.prefix}-gcp-sut-vm-${count.index + 1}"
   machine_type = var.gcp_machine_type_sut
   zone         = var.gcp_availability_zones[count.index]
+  tags = ["sut"]
 
   boot_disk {
     initialize_params {
@@ -74,6 +75,7 @@ resource "google_compute_instance" "benchmark_nodes" {
   name         = "${var.prefix}-gcp-bench-vm-${count.index + 1}"
   machine_type = var.gcp_machine_type_bench
   zone         = var.gcp_availability_zones[count.index]
+  tags = ["benchmark"]
 
   boot_disk {
     initialize_params {
@@ -110,10 +112,10 @@ resource "google_compute_instance" "benchmark_nodes" {
   provisioner "remote-exec" {
     inline = [
       "sudo apt install openjdk-17-jre -y",
-      "echo 'java -jar ${var.remote_path_to_jar_file} ${google_compute_instance.cockroach_nodes[count.index].network_interface.0.access_config.0.nat_ip} ${count.index * 1000} ${var.benchmark_run_duration_in_minutes} 100 run' > runBenchmark.sh",
+      "echo 'java -Xmx12G -jar ${var.remote_path_to_jar_file} ${google_compute_instance.cockroach_nodes[count.index].network_interface.0.network_ip} ${(count.index + 1) * 1000} ${var.benchmark_run_duration_in_minutes} 100 run' > runBenchmark.sh",
       "chmod +x runBenchmark.sh",
       "mkdir workload",
-      "echo '${self.name}, ${self.machine_type}, ${self.zone}, ${self.network_interface.0.access_config.0.nat_ip}, ${self.boot_disk[0].initialize_params[0].image}' > workload/machine.txt"
+      "echo '${self.name}, ${self.machine_type}, ${self.zone}, ${self.network_interface.0.access_config.0.nat_ip}, ${self.network_interface.0.network_ip}, ${self.boot_disk[0].initialize_params[0].image}' > workload/machine.txt"
     ]
   }
 }
@@ -222,3 +224,4 @@ resource "google_compute_firewall" "allow_public_cockroach" {
   }
   source_ranges = ["0.0.0.0/0"]
 }
+

@@ -7,7 +7,7 @@ variable "gcp_availability_zones" { default = ["europe-west3-a", "europe-west3-b
 // Deployment variables
 variable "instances" { default = "3" }
 variable "prefix" { default = "csb" }
-variable "gcp_machine_type_bench" { default = "e2-standard-2" } // use e2-standard-2 // e2-micro
+variable "gcp_machine_type_bench" { default = "e2-standard-4" } // use e2-standard-2 // e2-micro
 variable "gcp_machine_type_sut" { default = "n2-standard-4" } // 3 suts = n2-standard-4 // 6 suts = n2-standard-2
 
 variable "path_private_key" { default = "C:\\Users\\Roschy\\.ssh\\ri_key" }
@@ -17,4 +17,4 @@ variable "path_public_key" { default = "C:\\Users\\Roschy\\.ssh\\ri_key.pub" }
 variable "path_to_sqlinit_file" { default = "../src/main/resources/dbinit.sql"}
 variable "local_path_to_jar_file" { default = "../build/libs/CloudServiceBenchmarking-1.0-SNAPSHOT.jar"}
 variable "remote_path_to_jar_file" { default = "CloudServiceBenchmarking.jar"}
-variable "benchmark_run_duration_in_minutes" { default = "1"}
+variable "benchmark_run_duration_in_minutes" { default = "5"}
