@@ -45,6 +45,13 @@ class BenchmarkDAO {
         this.ds = ds;
         this.workloadQueryController = workloadQueryController;
         this.sqlLog = new ArrayList<>();
+        try (Connection connection = ds.getConnection()) {
+            try (Statement st = connection.createStatement()) {
+                st.execute("SET default_transaction_use_follower_reads = on;");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public boolean insertSingleObjectToDB(DatabaseTableModel databaseTableModel) {
@@ -130,6 +137,7 @@ class BenchmarkDAO {
                     connection.commit();
                     pstmt.close();
                     connection.close();
+                    break;
                 } catch (SQLException e) {
                     logger.error(String.format("BenchmarkDAO.bulkInsertObjectsToDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n", databaseTableModelList.get(0).getClass(), e.getSQLState(), e.getCause(), e.getMessage()));
                     if (RETRY_SQL_STATE.equals(e.getSQLState())) {
@@ -150,7 +158,9 @@ class BenchmarkDAO {
                             // Necessary to allow the Thread.sleep()
                             // above so the retry loop can continue.
                         }
-                        return false;
+                        if(retryCount > MAX_RETRY_COUNT) {
+                            return false;
+                        }
                     }
                 }
             }

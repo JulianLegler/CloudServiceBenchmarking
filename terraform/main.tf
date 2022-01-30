@@ -60,6 +60,7 @@ resource "google_compute_instance" "cockroach_nodes" {
     inline = [
       #"sudo apt update && sudo apt upgrade -y",
       # follows https://www.cockroachlabs.com/docs/v21.2/install-cockroachdb-linux
+      "sudo chronyc -a makestep",
       "curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh",
       "sudo bash add-google-cloud-ops-agent-repo.sh --also-install",
       "curl https://binaries.cockroachdb.com/cockroach-v21.2.2.linux-amd64.tgz | tar -xz && sudo cp -i cockroach-v21.2.2.linux-amd64/cockroach /usr/local/bin/",
@@ -116,11 +117,14 @@ resource "google_compute_instance" "benchmark_nodes" {
   // Create a file that already contain the start command with all needed parameter
   provisioner "remote-exec" {
     inline = [
+      "sudo chronyc -a makestep",
       "curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh",
       "sudo bash add-google-cloud-ops-agent-repo.sh --also-install",
       "sudo apt install openjdk-17-jre -y",
-      "echo 'java -Xmx12G -jar ${var.remote_path_to_jar_file} ${google_compute_instance.cockroach_nodes[count.index].network_interface.0.network_ip} ${(count.index + 1) * 1000} ${var.benchmark_run_duration_in_minutes} 100 run' > runBenchmark.sh",
+      "echo 'java -Xmx12G -jar ${var.remote_path_to_jar_file} run ${google_compute_instance.cockroach_nodes[count.index].network_interface.0.network_ip} ${(count.index + 1) * 1000} ${var.benchmark_run_duration_in_minutes} 50 run' > runBenchmark.sh",
       "chmod +x runBenchmark.sh",
+      "echo 'java -Xmx12G -jar ${var.remote_path_to_jar_file} load ${google_compute_instance.cockroach_nodes[count.index].network_interface.0.network_ip} ${(count.index + 1) * 1000} 100000 2000 5' > runLoad.sh",
+      "chmod +x runLoad.sh",
       "mkdir workload",
       "echo '${self.name}, ${self.machine_type}, ${self.zone}, ${self.network_interface.0.access_config.0.nat_ip}, ${self.network_interface.0.network_ip}, ${self.boot_disk[0].initialize_params[0].image}' > workload/machine.txt"
     ]
@@ -162,7 +166,8 @@ resource "null_resource" "init_cockroach" {
   provisioner "remote-exec" {
     inline = [
       "cockroach init --insecure --host=${google_compute_instance.cockroach_nodes.0.network_interface.0.access_config.0.nat_ip}:26257",
-      "cat dbinit.sql | cockroach sql --url 'postgresql://root@localhost:26257?sslmode=disable'"
+      "cat dbinit.sql | cockroach sql --url 'postgresql://root@localhost:26257?sslmode=disable'",
+      "echo 'SET default_transaction_use_follower_reads = on;' | cockroach sql --url 'postgresql://root@localhost:26257?sslmode=disable'"
     ]
   }
 
@@ -177,8 +182,31 @@ resource "local_file" "public_ip_addr" {
   filename = "public_ip.csv"
 }
 
+/*
+resource "null_resource" "run_loadPhase" {
 
+  triggers = {
+    public_ip = google_compute_instance.cockroach_nodes.0.network_interface.0.access_config.0.nat_ip
+  }
 
+  connection {
+    type = "ssh"
+    host = google_compute_instance.benchmark_nodes.0.network_interface.0.access_config.0.nat_ip
+    user = "csb"
+    port = 22
+    //agent = true
+    private_key = file(var.path_private_key)
+  }
+
+  // init cockroach on one node
+  provisioner "remote-exec" {
+    inline = [
+      "sleep 10s",
+      "./runLoad.sh"
+    ]
+  }
+}
+*/
 /*
 -------------------------------
    FIREWALL

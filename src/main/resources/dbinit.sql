@@ -1,5 +1,6 @@
 SET sql_safe_updates = FALSE;
 SET timezone = "UTC";
+SET default_transaction_read_only = TRUE;
 
 USE defaultdb;
 DROP DATABASE IF EXISTS tpc_w_light CASCADE;

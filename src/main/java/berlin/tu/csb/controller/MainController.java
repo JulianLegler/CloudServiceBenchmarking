@@ -30,40 +30,64 @@ public class MainController {
         String[] serverAddresses = new String[1];
         long seed = 2122;
         int runTimeInMinutes = 1;
-        boolean isRunStart = true;
         int threadCount = 10;
+        String runOrLoad = "run";
+        int dbCustomerInsertsLoadPhase = 100000;
+        int dbItemInsertsLoadPhase = 2000 ;
 
         System.out.println("Present Project Directory : "+ System.getProperty("user.dir"));
 
-        if(args.length < 4 || args.length > 5) {
-            System.out.println("Number of run arguments are not correct. Fallback to local execution mode.");
-            System.out.printf("Correct usage of parameters:%n 1 - server adress%n 2 - seed for pseudo generator as long%n 3 - run time of benchmark in minutes%n 4 - amount of threads to run%n 5 - run / load depending on what you want to do (default run)");
-            try {
-                String content = new String(Files.readAllBytes(Paths.get(System.getProperty("user.dir")+"\\terraform\\public_ip.csv")));
-                serverAddresses = content.split(",");
-            } catch (IOException e) {
-                System.out.println("public_ip.csv not present. Are the servers set up correctly?");
-                e.printStackTrace();
-                System.exit(1);
+
+        if(args[0] != null && args[0].equals("run")) {
+            if(args.length < 4 || args.length > 5) {
+                System.out.println("Number of run arguments are not correct. Fallback to local execution mode.");
+                System.out.printf("Correct usage of parameters:%n 1 - run %n 2 - server adress%n 3 - seed for pseudo generator as long%n 4 - run time of benchmark in minutes%n 5 - amount of threads to run%n");
+                try {
+                    String content = new String(Files.readAllBytes(Paths.get(System.getProperty("user.dir")+"\\terraform\\public_ip.csv")));
+                    serverAddresses = content.split(",");
+                } catch (IOException e) {
+                    System.out.println("public_ip.csv not present. Are the servers set up correctly?");
+                    e.printStackTrace();
+                    System.exit(1);
+                }
+            }else {
+                serverAddresses[1] = args[1];
+                seed = Long.parseLong(args[2]);
+                runTimeInMinutes = Integer.parseInt(args[3]);
+                threadCount = Integer.parseInt(args[4]);
             }
         }
-        else {
-            serverAddresses[0] = args[0];
-            seed = Long.parseLong(args[1]);
-            runTimeInMinutes = Integer.parseInt(args[2]);
-            threadCount = Integer.parseInt(args[3]);
-            if(args[4] != null && args[4].equals("load")) {
-                isRunStart = false;
+        else if (args[0] != null && args[0].equals("load")) {
+            runOrLoad = "load";
+            if(args.length < 4 || args.length > 5) {
+                System.out.println("Number of run arguments are not correct. Fallback to local execution mode.");
+                System.out.printf("Correct usage of parameters:%n 1 - load %n 2 - server adress%n 3 - seed for pseudo generator as long%n 4 - Amount of Customers to be created %n 5 - Amount of Items to be created %n 6 - amount of threads to run%n");
+                try {
+                    String content = new String(Files.readAllBytes(Paths.get(System.getProperty("user.dir") + "\\terraform\\public_ip.csv")));
+                    serverAddresses = content.split(",");
+                } catch (IOException e) {
+                    System.out.println("public_ip.csv not present. Are the servers set up correctly?");
+                    e.printStackTrace();
+                    System.exit(1);
+                }
+            }
+            else {
+                serverAddresses[1] = args[1];
+                seed = Long.parseLong(args[2]);
+                dbCustomerInsertsLoadPhase = Integer.parseInt(args[3]);
+                dbItemInsertsLoadPhase = Integer.parseInt(args[4]);
+                threadCount = Integer.parseInt(args[5]);
             }
         }
+
 
 
 
 
 
         BenchmarkConfig benchmarkConfig = new BenchmarkConfig();
-        benchmarkConfig.dbCustomerInsertsLoadPhase = 100000;
-        benchmarkConfig.dbItemInsertsLoadPhase = 2000 ;
+        benchmarkConfig.dbCustomerInsertsLoadPhase = dbCustomerInsertsLoadPhase;
+        benchmarkConfig.dbItemInsertsLoadPhase = dbItemInsertsLoadPhase ;
         benchmarkConfig.dbOrderInsertsLoadPhase = (long)(benchmarkConfig.dbCustomerInsertsLoadPhase * 1.2);
         benchmarkConfig.threadCountLoad = threadCount;
         benchmarkConfig.threadCountRun = threadCount;
@@ -123,7 +147,7 @@ public class MainController {
         //databaseController.dao.truncateAllTables();
 
 
-        if(!isRunStart) {
+        if(runOrLoad.equals("load")) {
             runLoadPhase(serverAddresses, benchmarkConfig);
         }
         else {
