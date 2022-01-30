@@ -48,7 +48,7 @@ class BenchmarkDAO {
         this.sqlLog = new ArrayList<>();
         try (Connection connection = ds.getConnection()) {
             try (Statement st = connection.createStatement()) {
-                st.execute("SET default_transaction_use_follower_reads = on;");
+                st.execute("SET default_transaction_use_follower_reads = true;");
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -163,6 +163,9 @@ class BenchmarkDAO {
                             return false;
                         }
                     }
+                    else {
+                        break;
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -233,14 +236,9 @@ class BenchmarkDAO {
                             return null;
                         }
                     }
-                } catch (InvocationTargetException e) {
-                    e.printStackTrace();
-                } catch (InstantiationException e) {
-                    e.printStackTrace();
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                } catch (NoSuchMethodException e) {
-                    e.printStackTrace();
+                } catch (Exception e) {
+                    logger.error(String.format("!THIS EXCEPTION SHOULD NOT BE TRIGGERED! BenchmarkDAO.getSingleObjectFromDB of instance %s ERROR: { cause => %s, message => %s }\n", databaseTableModel.getClass(), e.getCause(), e.getMessage()));
+                    retryCount++;
                 }
             }
 
