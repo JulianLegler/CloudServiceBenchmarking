@@ -153,5 +153,9 @@ public class PersistenceController {
         return true;
     }
 
+    public void syncPersistenceController(PersistenceController persistenceController) {
+        this.stateController.setState(persistenceController.stateController);
+    }
+
 
 }

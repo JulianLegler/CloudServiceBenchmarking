@@ -8,15 +8,15 @@ import berlin.tu.csb.model.OrderLine;
 import java.util.*;
 
 public class StateController {
-    private final Map<String, Customer> customerMap = new HashMap<>();
-    private final Map<String, Item> itemMap = new HashMap<>();
-    private final Map<String, Order> orderMap = new HashMap<>();
-    private final Map<String, OrderLine> orderLineMap = new HashMap<>();
+    private Map<String, Customer> customerMap = new HashMap<>();
+    private Map<String, Item> itemMap = new HashMap<>();
+    private Map<String, Order> orderMap = new HashMap<>();
+    private Map<String, OrderLine> orderLineMap = new HashMap<>();
 
-    private final ArrayList<String> customerIds = new ArrayList<>();
-    private final ArrayList<String> itemIds = new ArrayList<>();
-    private final ArrayList<String> orderIds = new ArrayList<>();
-    private final ArrayList<String> orderLineIds = new ArrayList<>();
+    private ArrayList<String> customerIds = new ArrayList<>();
+    private ArrayList<String> itemIds = new ArrayList<>();
+    private ArrayList<String> orderIds = new ArrayList<>();
+    private ArrayList<String> orderLineIds = new ArrayList<>();
 
     private SeededRandomHelper seededRandomHelper;
 
@@ -98,5 +98,15 @@ public class StateController {
 
     public boolean hasItems() {
         return !itemIds.isEmpty();
+    }
+
+    public void setState(StateController s) {
+        this.customerMap = s.customerMap;
+        this.customerIds = s.customerIds;
+        this.itemMap = s.itemMap;
+        this.itemIds = s.itemIds;
+        this.orderMap = s.orderMap;
+        this.orderIds = s.orderIds;
+        this.orderLineMap = s.orderLineMap;
     }
 }

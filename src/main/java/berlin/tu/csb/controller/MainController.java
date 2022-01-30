@@ -3,6 +3,8 @@ package berlin.tu.csb.controller;
 import berlin.tu.csb.model.BenchmarkConfig;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -20,6 +22,7 @@ public class MainController {
     static SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH.mm.ss.SSS");
     static Date now = new Date(System.currentTimeMillis());
     static String dateString = sdf.format(now);
+    static Logger logger = LogManager.getLogger(MainController.class);
 
 
     public static void main(String[] args) {
@@ -140,6 +143,26 @@ public class MainController {
         List<Thread> threadList = new ArrayList<>();
         List<PersistenceController> persistenceControllerList = new ArrayList<>();
 
+        SeededRandomHelper seededRandomHelperPre = new SeededRandomHelper(benchmarkConfig.seed);
+        PersistenceController persistenceControllerPre = new PersistenceController(new DatabaseController("tpc_w_light", "root", 26257, serverAddresses[0]), new StateController(seededRandomHelperPre));
+
+        logger.info("Fetching Customers from DB...");
+        persistenceControllerPre.syncCustomerStateWithDB();
+        logger.info("Fetched " + persistenceControllerPre.stateController.getCustomerListSize() + " Customer from DB.");
+
+        logger.info("Fetching Items from DB...");
+        persistenceControllerPre.syncItemStateWithDB();
+        logger.info("Fetched " + persistenceControllerPre.stateController.getItemListSize() + " Items from DB.");
+
+        logger.info("Fetching Orders from DB...");
+        persistenceControllerPre.syncOrderStateWithDB();
+        logger.info("Fetched " + persistenceControllerPre.stateController.getOrderSize() + " Orders from DB.");
+
+        logger.info("Fetching OrderLines from DB...");
+        persistenceControllerPre.syncOrderLineStateWithDB();
+        logger.info("Fetched " + persistenceControllerPre.stateController.getOrderLineSize() + " OrderLines from DB.");
+
+
         for (int i = 1; i <= benchmarkConfig.threadCountRun; i++) {
             String pickedServerAddress = serverAddresses[i % serverAddresses.length];
 
@@ -147,6 +170,8 @@ public class MainController {
             SeededRandomHelper seededRandomHelper = new SeededRandomHelper(benchmarkConfig.seed+i);
             PersistenceController persistenceController = new PersistenceController(new DatabaseController("tpc_w_light", "root", 26257, pickedServerAddress), new StateController(seededRandomHelper));
             persistenceControllerList.add(persistenceController);
+            persistenceController.syncPersistenceController(persistenceControllerPre);
+
             RunPhaseGenerator runPhaseGenerator = new RunPhaseGenerator(persistenceController, seededRandomHelper, startTime, runTimeInSeconds, endTime, benchmarkConfig);
             //workloadGenerator.run();
 

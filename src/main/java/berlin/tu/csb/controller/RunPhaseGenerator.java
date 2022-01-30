@@ -45,22 +45,6 @@ public class RunPhaseGenerator implements Runnable {
         // Add some thread specific informations for logging and collection of the SQL statements
         ThreadContext.put("threadName", Thread.currentThread().getName());
 
-        logger.info("Fetching Customers from DB...");
-        persistenceController.syncCustomerStateWithDB();
-        logger.info("Fetched " + persistenceController.stateController.getCustomerListSize() + " Customer from DB.");
-
-        logger.info("Fetching Items from DB...");
-        persistenceController.syncItemStateWithDB();
-        logger.info("Fetched " + persistenceController.stateController.getItemListSize() + " Items from DB.");
-
-        logger.info("Fetching Orders from DB...");
-        persistenceController.syncOrderStateWithDB();
-        logger.info("Fetched " + persistenceController.stateController.getOrderSize() + " Orders from DB.");
-
-        logger.info("Fetching OrderLines from DB...");
-        persistenceController.syncOrderLineStateWithDB();
-        logger.info("Fetched " + persistenceController.stateController.getOrderLineSize() + " OrderLines from DB.");
-
 
         // Creates a List of "Top Seller Items" that will be more frequently searched than others
         topSellerItems = new ArrayList<>(persistenceController.stateController.getRandomItems((int) (persistenceController.stateController.getItemListSize() * 0.1)));
