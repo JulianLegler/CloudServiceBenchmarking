@@ -1,6 +1,7 @@
 // Provider variables
 variable "gcp_service_account_path" {}
 variable "gcp_project_id" {}
+variable "gcp_account_email" {}
 variable "gcp_region" { default = "europe-west3" }
 variable "gcp_availability_zones" { default = ["europe-west3-a", "europe-west3-b", "europe-west3-c"] }
 
@@ -10,8 +11,8 @@ variable "prefix" { default = "csb" }
 variable "gcp_machine_type_bench" { default = "e2-standard-4" } // use e2-standard-2 // e2-micro
 variable "gcp_machine_type_sut" { default = "n2-standard-4" } // 3 suts = n2-standard-4 // 6 suts = n2-standard-2
 
-variable "path_private_key" { default = "C:\\Users\\Roschy\\.ssh\\ri_key" }
-variable "path_public_key" { default = "C:\\Users\\Roschy\\.ssh\\ri_key.pub" }
+variable "path_private_key" {  }
+variable "path_public_key" {  }
 
 // Application variables
 variable "path_to_sqlinit_file" { default = "../src/main/resources/dbinit.sql"}

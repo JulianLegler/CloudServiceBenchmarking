@@ -60,12 +60,17 @@ resource "google_compute_instance" "cockroach_nodes" {
     inline = [
       #"sudo apt update && sudo apt upgrade -y",
       # follows https://www.cockroachlabs.com/docs/v21.2/install-cockroachdb-linux
+      "curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh",
+      "sudo bash add-google-cloud-ops-agent-repo.sh --also-install",
       "curl https://binaries.cockroachdb.com/cockroach-v21.2.2.linux-amd64.tgz | tar -xz && sudo cp -i cockroach-v21.2.2.linux-amd64/cockroach /usr/local/bin/",
-      #"mkdir -p /usr/local/lib/cockroach",
-      #"cp -i cockroach-v21.2.2.linux-amd64/lib/libgeos.so /usr/local/lib/cockroach/",
-      #"cp -i cockroach-v21.2.2.linux-amd64/lib/libgeos_c.so /usr/local/lib/cockroach/",
       "cockroach start --insecure --cache=.30 --max-sql-memory=.30 --advertise-addr=${self.network_interface.0.network_ip} --join=${google_compute_instance.cockroach_nodes.0.network_interface.0.network_ip} --background --locality=region=${var.gcp_region},zone=${self.zone}"
     ]
+  }
+
+  service_account {
+    # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
+    email  = var.gcp_account_email
+    scopes = ["cloud-platform"]
   }
 }
 
@@ -111,12 +116,20 @@ resource "google_compute_instance" "benchmark_nodes" {
   // Create a file that already contain the start command with all needed parameter
   provisioner "remote-exec" {
     inline = [
+      "curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh",
+      "sudo bash add-google-cloud-ops-agent-repo.sh --also-install",
       "sudo apt install openjdk-17-jre -y",
       "echo 'java -Xmx12G -jar ${var.remote_path_to_jar_file} ${google_compute_instance.cockroach_nodes[count.index].network_interface.0.network_ip} ${(count.index + 1) * 1000} ${var.benchmark_run_duration_in_minutes} 100 run' > runBenchmark.sh",
       "chmod +x runBenchmark.sh",
       "mkdir workload",
       "echo '${self.name}, ${self.machine_type}, ${self.zone}, ${self.network_interface.0.access_config.0.nat_ip}, ${self.network_interface.0.network_ip}, ${self.boot_disk[0].initialize_params[0].image}' > workload/machine.txt"
     ]
+  }
+
+  service_account {
+    # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
+    email  = var.gcp_account_email
+    scopes = ["cloud-platform"]
   }
 }
 
@@ -225,3 +238,23 @@ resource "google_compute_firewall" "allow_public_cockroach" {
   source_ranges = ["0.0.0.0/0"]
 }
 
+module "agent_policy" {
+  source     = "./.terraform/modules/agent-policy"
+
+  project_id = var.gcp_project_id
+  policy_id  = "ops-agents-example-policy"
+  agent_rules = [
+    {
+      type               = "ops-agent"
+      version            = "current-major"
+      package_state      = "installed"
+      enable_autoupgrade = true
+    },
+  ]
+  os_types = [
+    {
+      short_name = "debian"
+      version    = "11"
+    },
+  ]
+}
