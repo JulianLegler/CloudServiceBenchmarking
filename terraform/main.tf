@@ -64,7 +64,7 @@ resource "google_compute_instance" "cockroach_nodes" {
       "curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh",
       "sudo bash add-google-cloud-ops-agent-repo.sh --also-install",
       "curl https://binaries.cockroachdb.com/cockroach-v21.2.2.linux-amd64.tgz | tar -xz && sudo cp -i cockroach-v21.2.2.linux-amd64/cockroach /usr/local/bin/",
-      "cockroach start --insecure --cache=.30 --max-sql-memory=.30 --advertise-addr=${self.network_interface.0.network_ip} --join=${google_compute_instance.cockroach_nodes.0.network_interface.0.network_ip} --background --locality=region=${var.gcp_region},zone=${self.zone}"
+      "cockroach start --insecure --cache=.30 --max-sql-memory=.30 --max-offset 2000ms --advertise-addr=${self.network_interface.0.network_ip} --join=${google_compute_instance.cockroach_nodes.0.network_interface.0.network_ip} --background --locality=region=${var.gcp_region},zone=${self.zone}"
     ]
   }
 
@@ -121,7 +121,7 @@ resource "google_compute_instance" "benchmark_nodes" {
       "curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh",
       "sudo bash add-google-cloud-ops-agent-repo.sh --also-install",
       "sudo apt install openjdk-17-jre -y",
-      "echo 'java -Xmx12G -jar ${var.remote_path_to_jar_file} run ${google_compute_instance.cockroach_nodes[count.index].network_interface.0.network_ip} ${(count.index + 1) * 1000} ${var.benchmark_run_duration_in_minutes} 50 run' > runBenchmark.sh",
+      "echo 'java -Xmx12G -jar ${var.remote_path_to_jar_file} run ${google_compute_instance.cockroach_nodes[count.index].network_interface.0.network_ip} ${(count.index + 1) * 1000} ${var.benchmark_run_duration_in_minutes} 50' > runBenchmark.sh",
       "chmod +x runBenchmark.sh",
       "echo 'java -Xmx12G -jar ${var.remote_path_to_jar_file} load ${google_compute_instance.cockroach_nodes[count.index].network_interface.0.network_ip} ${(count.index + 1) * 1000} 100000 2000 5' > runLoad.sh",
       "chmod +x runLoad.sh",

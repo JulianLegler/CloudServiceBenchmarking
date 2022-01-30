@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.sql.DataSource;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.text.SimpleDateFormat;
@@ -175,37 +176,74 @@ class BenchmarkDAO {
     public DatabaseTableModel getSingleObjectFromDB(DatabaseTableModel databaseTableModel) {
         DatabaseTableModel updatedObject = null;
         try (Connection connection = ds.getConnection()) {
+            int retryCount = 0;
+            while (retryCount <= MAX_RETRY_COUNT) {
+                try {
 
-            try {
-                Statement statement = connection.createStatement();
-                String sqlStatement = String.format(databaseTableModel.getBasicSQLSelfSelectString());
-                sqlLog.add(sqlStatement);
-                logger.trace(sqlStatement);
-
-                Date now = new Date(System.currentTimeMillis());
-                String timestampBeforeCommit = sdf.format(now);
-
-                ResultSet rs = statement.executeQuery(sqlStatement);
-
-                now = new Date(System.currentTimeMillis());
-                String timestampAfterCommit = sdf.format(now);
-
-                workloadQueryController.add(sqlStatement, timestampBeforeCommit, timestampAfterCommit);
+                    Statement statement = connection.createStatement();
+                    String sqlStatement = String.format(databaseTableModel.getBasicSQLSelfSelectString());
+                    sqlLog.add(sqlStatement);
+                    logger.trace(sqlStatement);
 
 
 
-                while (rs.next()) {
-                    // get the implementing class of the interfaces object given to this method and create a new object of the same type and fill it afterwards
-                    updatedObject = databaseTableModel.getClass().getDeclaredConstructor().newInstance();
-                    updatedObject.initWithResultSet(rs);
+                    Date now = new Date(System.currentTimeMillis());
+                    String timestampBeforeCommit = sdf.format(now);
+
+                    ResultSet rs = statement.executeQuery(sqlStatement);
+
+                    now = new Date(System.currentTimeMillis());
+                    String timestampAfterCommit = sdf.format(now);
+
+                    workloadQueryController.add(sqlStatement, timestampBeforeCommit, timestampAfterCommit);
+
+
+
+                    while (rs.next()) {
+                        // get the implementing class of the interfaces object given to this method and create a new object of the same type and fill it afterwards
+                        updatedObject = databaseTableModel.getClass().getDeclaredConstructor().newInstance();
+                        updatedObject.initWithResultSet(rs);
+                    }
+                    rs.close();
+                    statement.close();
+                    connection.close();
+                    break;
+                } catch (SQLException e) {
+                    logger.error(String.format("BenchmarkDAO.getSingleObjectFromDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n", databaseTableModel.getClass(), e.getSQLState(), e.getCause(), e.getMessage()));
+                    if (RETRY_SQL_STATE.equals(e.getSQLState())) {
+                        // Since this is a transaction retry error, we
+                        // roll back the transaction and sleep a
+                        // little before trying again.  Each time
+                        // through the loop we sleep for a little
+                        // longer than the last time
+                        // (A.K.A. exponential backoff).
+                        System.out.printf("retryable exception occurred:\n    sql state = [%s]\n    message = [%s]\n    retry counter = %s\n", e.getSQLState(), e.getMessage(), retryCount);
+                        connection.rollback();
+                        retryCount++;
+                        int sleepMillis = (int) (Math.pow(2, retryCount) * 100 + new Random().nextInt(100));
+                        System.out.printf("Hit 40001 transaction retry error, sleeping %s milliseconds\n", sleepMillis);
+                        try {
+                            Thread.sleep(sleepMillis);
+                        } catch (InterruptedException ignored) {
+                            // Necessary to allow the Thread.sleep()
+                            // above so the retry loop can continue.
+                        }
+                        if(retryCount > MAX_RETRY_COUNT) {
+                            logger.error("MAX_RETRY_COUNT arrived. It is no longer tried to execute this query: " + databaseTableModel.getBasicSQLSelfSelectString());
+                            return null;
+                        }
+                    }
+                } catch (InvocationTargetException e) {
+                    e.printStackTrace();
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                } catch (NoSuchMethodException e) {
+                    e.printStackTrace();
                 }
-                rs.close();
-                statement.close();
-                connection.close();
-            } catch (Exception e) {
-                System.err.println(e.getClass().getName() + ": " + e.getMessage());
-                System.exit(0);
             }
+
         } catch (SQLException e) {
             System.out.printf("BenchmarkDAO.getSingleObjectFromDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n",
                     databaseTableModel.getClass(), e.getSQLState(), e.getCause(), e.getMessage());
@@ -246,7 +284,6 @@ class BenchmarkDAO {
                 connection.close();
             } catch (Exception e) {
                 System.err.println(e.getClass().getName() + ": " + e.getMessage());
-                System.exit(0);
             }
         } catch (SQLException e) {
             System.out.printf("BenchmarkDAO.getAllOfObjectTypeFromDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n",
