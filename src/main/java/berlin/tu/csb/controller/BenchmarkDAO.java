@@ -1,14 +1,10 @@
 package berlin.tu.csb.controller;
 
 import berlin.tu.csb.model.*;
-import com.zaxxer.hikari.pool.HikariProxyPreparedStatement;
-import org.apache.commons.lang3.RandomUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.sql.DataSource;
-import java.lang.reflect.InvocationTargetException;
-import java.math.BigDecimal;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -187,7 +183,7 @@ class BenchmarkDAO {
                 }
             }
         } catch (SQLException e) {
-            logger.error(String.format("BenchmarkDAO.bulkInsertObjectsToDB ERROR: { state => %s, cause => %s, message => %s }\n",
+            logger.error(String.format("BenchmarkDAO.bulkInsertObjectsToDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n",
                     databaseTableModelList.get(0).getClass(), e.getSQLState(), e.getCause(), e.getMessage()));
             return false;
         }
@@ -501,7 +497,7 @@ class BenchmarkDAO {
                     connection.close();
                     break;
                 } catch (SQLException e) {
-                    logger.error(String.format("BenchmarkDAO.getAllCustomersWithOpenOrders of instance %s ERROR: { state => %s, cause => %s, message => %s }\n", e.getSQLState(), e.getCause(), e.getMessage()));
+                    logger.error(String.format("BenchmarkDAO.getAllCustomersWithOpenOrders ERROR: { state => %s, cause => %s, message => %s }\n", e.getSQLState(), e.getCause(), e.getMessage()));
                     if (RETRY_SQL_STATE.equals(e.getSQLState())) {
                         // Since this is a transaction retry error, we
                         // roll back the transaction and sleep a

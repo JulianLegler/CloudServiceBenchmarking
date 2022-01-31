@@ -66,4 +66,4 @@ CREATE INDEX item_idx_i_title ON item (i_title);
 
 
 SET default_transaction_read_only = TRUE;
-SET CLUSTER SETTING kv.range_split.load_qps_threshold = 20;
+SET CLUSTER SETTING kv.range_split.load_qps_threshold = 200;
