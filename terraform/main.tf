@@ -121,9 +121,9 @@ resource "google_compute_instance" "benchmark_nodes" {
       "curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh",
       "sudo bash add-google-cloud-ops-agent-repo.sh --also-install",
       "sudo apt install openjdk-17-jre -y",
-      "echo 'java -Xmx12G -jar ${var.remote_path_to_jar_file} run ${google_compute_instance.cockroach_nodes[count.index].network_interface.0.network_ip} ${(count.index + 1) * 1000} ${var.benchmark_run_duration_in_minutes} 16' > runBenchmark.sh",
+      "echo 'java -Xmx12G -jar ${var.remote_path_to_jar_file} run ${google_compute_instance.cockroach_nodes[count.index].network_interface.0.network_ip} ${(count.index + 1) * 1000} ${var.benchmark_run_duration_in_minutes} ${var.benchmark_run_threads}' > runBenchmark.sh",
       "chmod +x runBenchmark.sh",
-      "echo 'java -Xmx12G -jar ${var.remote_path_to_jar_file} load ${google_compute_instance.cockroach_nodes[count.index].network_interface.0.network_ip} ${(count.index + 1) * 1000} 100000 2000 5' > runLoad.sh",
+      "echo 'java -Xmx12G -jar ${var.remote_path_to_jar_file} load ${google_compute_instance.cockroach_nodes[count.index].network_interface.0.network_ip} ${(count.index + 1) * 1000} ${var.benchmark_load_customers} ${var.benchmark_load_items} ${var.benchmark_load_threads}' > runLoad.sh",
       "chmod +x runLoad.sh",
       "mkdir workload",
       "echo '${self.name}, ${self.machine_type}, ${self.zone}, ${self.network_interface.0.access_config.0.nat_ip}, ${self.network_interface.0.network_ip}, ${self.boot_disk[0].initialize_params[0].image}' > workload/machine.txt"
@@ -167,7 +167,8 @@ resource "null_resource" "init_cockroach" {
     inline = [
       "cockroach init --insecure --host=${google_compute_instance.cockroach_nodes.0.network_interface.0.access_config.0.nat_ip}:26257",
       "cat dbinit.sql | cockroach sql --url 'postgresql://root@localhost:26257?sslmode=disable'",
-      "echo 'ALTER ROLE root IN DATABASE tpc_w_light SET default_transaction_use_follower_reads = true;' | cockroach sql --url 'postgresql://root@localhost:26257?sslmode=disable'"
+      #"sleep 10s",
+      #"echo 'ALTER ROLE root IN DATABASE tpc_w_light SET default_transaction_use_follower_reads = true;' | cockroach sql --url 'postgresql://root@localhost:26257?sslmode=disable'"
     ]
   }
 

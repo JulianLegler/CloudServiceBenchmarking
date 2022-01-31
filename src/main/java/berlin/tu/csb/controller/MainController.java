@@ -39,7 +39,7 @@ public class MainController {
 
 
         if(args[0] != null && args[0].equals("run")) {
-            if(args.length < 4 || args.length > 5) {
+            if(args.length != 5) {
                 System.out.println("Number of run arguments are not correct. Fallback to local execution mode.");
                 System.out.printf("Correct usage of parameters:%n 1 - run %n 2 - server adress%n 3 - seed for pseudo generator as long%n 4 - run time of benchmark in minutes%n 5 - amount of threads to run%n");
                 try {
@@ -59,7 +59,7 @@ public class MainController {
         }
         else if (args[0] != null && args[0].equals("load")) {
             runOrLoad = "load";
-            if(args.length < 4 || args.length > 5) {
+            if(args.length != 6) {
                 System.out.println("Number of run arguments are not correct. Fallback to local execution mode.");
                 System.out.printf("Correct usage of parameters:%n 1 - load %n 2 - server adress%n 3 - seed for pseudo generator as long%n 4 - Amount of Customers to be created %n 5 - Amount of Items to be created %n 6 - amount of threads to run%n");
                 try {
@@ -87,7 +87,7 @@ public class MainController {
 
         BenchmarkConfig benchmarkConfig = new BenchmarkConfig();
         benchmarkConfig.dbCustomerInsertsLoadPhase = dbCustomerInsertsLoadPhase;
-        benchmarkConfig.dbItemInsertsLoadPhase = dbItemInsertsLoadPhase ;
+        benchmarkConfig.dbItemInsertsLoadPhase = dbItemInsertsLoadPhase;
         benchmarkConfig.dbOrderInsertsLoadPhase = (long)(benchmarkConfig.dbCustomerInsertsLoadPhase * 1.2);
         benchmarkConfig.threadCountLoad = threadCount;
         benchmarkConfig.threadCountRun = threadCount;

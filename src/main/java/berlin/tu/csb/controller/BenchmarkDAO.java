@@ -15,15 +15,6 @@ import java.util.*;
 import java.util.Date;
 import java.util.stream.Collectors;
 
-/**
- * Data access object used by 'BasicExample'.  Abstraction over some
- * common CockroachDB operations, including:
- * <p>
- * - Auto-handling transaction retries in the 'runSQL' method
- * <p>
- * - Example of bulk inserts in the 'bulkInsertRandomAccountData'
- * method
- */
 
 class BenchmarkDAO {
 
@@ -57,29 +48,56 @@ class BenchmarkDAO {
 
     public boolean insertSingleObjectToDB(DatabaseTableModel databaseTableModel) {
         try (Connection connection = ds.getConnection()) {
-            try (PreparedStatement pstmt = connection.prepareStatement(databaseTableModel.getSQLInsertString())) {
+            int retryCount = 0;
+            while (retryCount <= MAX_RETRY_COUNT) {
+                try (PreparedStatement pstmt = connection.prepareStatement(databaseTableModel.getSQLInsertString())) {
 
-                databaseTableModel.fillStatement(pstmt);
-                sqlLog.add(pstmt.toString());
-                logger.trace(pstmt.toString());
+                    databaseTableModel.fillStatement(pstmt);
+                    sqlLog.add(pstmt.toString());
+                    logger.trace(pstmt.toString());
 
 
-                Date now = new Date(System.currentTimeMillis());
-                String timestampBeforeCommit = sdf.format(now);
+                    Date now = new Date(System.currentTimeMillis());
+                    String timestampBeforeCommit = sdf.format(now);
 
-                pstmt.execute();
+                    pstmt.execute();
 
-                now = new Date(System.currentTimeMillis());
-                String timestampAfterCommit = sdf.format(now);
+                    now = new Date(System.currentTimeMillis());
+                    String timestampAfterCommit = sdf.format(now);
 
-                workloadQueryController.add(pstmt.toString(), timestampBeforeCommit, timestampAfterCommit);
+                    workloadQueryController.add(pstmt.toString(), timestampBeforeCommit, timestampAfterCommit);
 
-                pstmt.close();
-                connection.close();
-            } catch (SQLException e) {
-                System.out.printf("BenchmarkDAO.insertSingleObjectIntoDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n",
-                        databaseTableModel.getClass(), e.getSQLState(), e.getCause(), e.getMessage());
-                return false;
+                    pstmt.close();
+                    connection.close();
+                    break;
+                } catch (SQLException e) {
+                    logger.error(String.format("BenchmarkDAO.insertSingleObjectToDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n", databaseTableModel.getClass(), e.getSQLState(), e.getCause(), e.getMessage()));
+                    if (RETRY_SQL_STATE.equals(e.getSQLState())) {
+                        // Since this is a transaction retry error, we
+                        // roll back the transaction and sleep a
+                        // little before trying again.  Each time
+                        // through the loop we sleep for a little
+                        // longer than the last time
+                        // (A.K.A. exponential backoff).
+                        logger.trace(String.format("retryable exception occurred:\n    sql state = [%s]\n    message = [%s]\n    retry counter = %s\n", e.getSQLState(), e.getMessage(), retryCount));
+                        connection.rollback();
+                        retryCount++;
+                        int sleepMillis = (int) (Math.pow(2, retryCount) * 100 + new Random().nextInt(100));
+                        System.out.printf("Hit 40001 transaction retry error, sleeping %s milliseconds\n", sleepMillis);
+                        try {
+                            Thread.sleep(sleepMillis);
+                        } catch (InterruptedException ignored) {
+                            // Necessary to allow the Thread.sleep()
+                            // above so the retry loop can continue.
+                        }
+                        if(retryCount > MAX_RETRY_COUNT) {
+                            return false;
+                        }
+                    }
+                    else {
+                        break;
+                    }
+                }
             }
         } catch (SQLException e) {
             System.out.printf("BenchmarkDAO.insertSingleObjectIntoDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n",
@@ -148,7 +166,7 @@ class BenchmarkDAO {
                         // through the loop we sleep for a little
                         // longer than the last time
                         // (A.K.A. exponential backoff).
-                        System.out.printf("retryable exception occurred:\n    sql state = [%s]\n    message = [%s]\n    retry counter = %s\n", e.getSQLState(), e.getMessage(), retryCount);
+                        logger.trace(String.format("retryable exception occurred:\n    sql state = [%s]\n    message = [%s]\n    retry counter = %s\n", e.getSQLState(), e.getMessage(), retryCount));
                         connection.rollback();
                         retryCount++;
                         int sleepMillis = (int) (Math.pow(2, retryCount) * 100 + new Random().nextInt(100));
@@ -220,7 +238,7 @@ class BenchmarkDAO {
                         // through the loop we sleep for a little
                         // longer than the last time
                         // (A.K.A. exponential backoff).
-                        System.out.printf("retryable exception occurred:\n    sql state = [%s]\n    message = [%s]\n    retry counter = %s\n", e.getSQLState(), e.getMessage(), retryCount);
+                        logger.trace(String.format("retryable exception occurred:\n    sql state = [%s]\n    message = [%s]\n    retry counter = %s\n", e.getSQLState(), e.getMessage(), retryCount));
                         connection.rollback();
                         retryCount++;
                         int sleepMillis = (int) (Math.pow(2, retryCount) * 100 + new Random().nextInt(100));
@@ -254,34 +272,64 @@ class BenchmarkDAO {
 
 
         try (Connection connection = ds.getConnection()) {
+            int retryCount = 0;
+            while (retryCount <= MAX_RETRY_COUNT) {
+                try {
+                    Statement statement = connection.createStatement();
+                    String sqlStatement = String.format("%s %s", databaseTableModel.getBasicSQLAllSelectString(), additionalSQLCondition);
+                    sqlLog.add(sqlStatement);
+                    logger.trace(sqlStatement);
 
-            try {
-                Statement statement = connection.createStatement();
-                String sqlStatement = String.format("%s %s", databaseTableModel.getBasicSQLAllSelectString(), additionalSQLCondition);
-                sqlLog.add(sqlStatement);
-                logger.trace(sqlStatement);
+                    Date now = new Date(System.currentTimeMillis());
+                    String timestampBeforeCommit = sdf.format(now);
 
-                Date now = new Date(System.currentTimeMillis());
-                String timestampBeforeCommit = sdf.format(now);
+                    ResultSet rs = statement.executeQuery(sqlStatement);
 
-                ResultSet rs = statement.executeQuery(sqlStatement);
+                    now = new Date(System.currentTimeMillis());
+                    String timestampAfterCommit = sdf.format(now);
 
-                now = new Date(System.currentTimeMillis());
-                String timestampAfterCommit = sdf.format(now);
+                    workloadQueryController.add(sqlStatement, timestampBeforeCommit, timestampAfterCommit);
 
-                workloadQueryController.add(sqlStatement, timestampBeforeCommit, timestampAfterCommit);
+                    while (rs.next()) {
+                        // get the implementing class of the interfaces object given to this method and create a new object of the same type and fill it afterwards
+                        DatabaseTableModel readDatabaseTableModel = databaseTableModel.getClass().getDeclaredConstructor().newInstance();
+                        readDatabaseTableModel.initWithResultSet(rs);
+                        databaseTableModelList.add(readDatabaseTableModel);
+                    }
+                    rs.close();
+                    statement.close();
+                    connection.close();
+                    break;
 
-                while (rs.next()) {
-                    // get the implementing class of the interfaces object given to this method and create a new object of the same type and fill it afterwards
-                    DatabaseTableModel readDatabaseTableModel = databaseTableModel.getClass().getDeclaredConstructor().newInstance();
-                    readDatabaseTableModel.initWithResultSet(rs);
-                    databaseTableModelList.add(readDatabaseTableModel);
+                } catch (SQLException e) {
+                    logger.error(String.format("BenchmarkDAO.getAllOfObjectTypeFromDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n", databaseTableModel.getClass(), e.getSQLState(), e.getCause(), e.getMessage()));
+                    if (RETRY_SQL_STATE.equals(e.getSQLState())) {
+                        // Since this is a transaction retry error, we
+                        // roll back the transaction and sleep a
+                        // little before trying again.  Each time
+                        // through the loop we sleep for a little
+                        // longer than the last time
+                        // (A.K.A. exponential backoff).
+                        logger.trace(String.format("retryable exception occurred:\n    sql state = [%s]\n    message = [%s]\n    retry counter = %s\n", e.getSQLState(), e.getMessage(), retryCount));
+                        connection.rollback();
+                        retryCount++;
+                        int sleepMillis = (int) (Math.pow(2, retryCount) * 100 + new Random().nextInt(100));
+                        System.out.printf("Hit 40001 transaction retry error, sleeping %s milliseconds\n", sleepMillis);
+                        try {
+                            Thread.sleep(sleepMillis);
+                        } catch (InterruptedException ignored) {
+                            // Necessary to allow the Thread.sleep()
+                            // above so the retry loop can continue.
+                        }
+                        if(retryCount > MAX_RETRY_COUNT) {
+                            logger.error("MAX_RETRY_COUNT arrived. It is no longer tried to execute this query: " + databaseTableModel.getBasicSQLSelfSelectString());
+                            return null;
+                        }
+                    }
                 }
-                rs.close();
-                statement.close();
-                connection.close();
-            } catch (Exception e) {
-                System.err.println(e.getClass().getName() + ": " + e.getMessage());
+                catch (Exception e) {
+                    System.err.println(e.getClass().getName() + ": " + e.getMessage());
+                }
             }
         } catch (SQLException e) {
             System.out.printf("BenchmarkDAO.getAllOfObjectTypeFromDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n",
@@ -295,35 +343,63 @@ class BenchmarkDAO {
 
 
         try (Connection connection = ds.getConnection()) {
+            int retryCount = 0;
+            while (retryCount <= MAX_RETRY_COUNT) {
+                try {
+                    Statement statement = connection.createStatement();
+                    String sqlStatement = String.format("%s WHERE %s = '%s';", requestedTableModel.getBasicSQLAllSelectString(), primaryKeyTableModel.getPrimaryKeyNameAndValue().getKey(), primaryKeyTableModel.getPrimaryKeyNameAndValue().getValue());
+                    sqlLog.add(sqlStatement);
+                    logger.trace(sqlStatement);
 
-            try {
-                Statement statement = connection.createStatement();
-                String sqlStatement = String.format("%s WHERE %s = '%s';", requestedTableModel.getBasicSQLAllSelectString(), primaryKeyTableModel.getPrimaryKeyNameAndValue().getKey(), primaryKeyTableModel.getPrimaryKeyNameAndValue().getValue());
-                sqlLog.add(sqlStatement);
-                logger.trace(sqlStatement);
+                    Date now = new Date(System.currentTimeMillis());
+                    String timestampBeforeCommit = sdf.format(now);
 
-                Date now = new Date(System.currentTimeMillis());
-                String timestampBeforeCommit = sdf.format(now);
+                    ResultSet rs = statement.executeQuery(sqlStatement);
 
-                ResultSet rs = statement.executeQuery(sqlStatement);
+                    now = new Date(System.currentTimeMillis());
+                    String timestampAfterCommit = sdf.format(now);
 
-                now = new Date(System.currentTimeMillis());
-                String timestampAfterCommit = sdf.format(now);
+                    workloadQueryController.add(sqlStatement, timestampBeforeCommit, timestampAfterCommit);
 
-                workloadQueryController.add(sqlStatement, timestampBeforeCommit, timestampAfterCommit);
-
-                while (rs.next()) {
-                    // get the implementing class of the interfaces object given to this method and create a new object of the same type and fill it afterwards
-                    DatabaseTableModel readDatabaseTableModel = requestedTableModel.getClass().getDeclaredConstructor().newInstance();
-                    readDatabaseTableModel.initWithResultSet(rs);
-                    databaseTableModelList.add(readDatabaseTableModel);
+                    while (rs.next()) {
+                        // get the implementing class of the interfaces object given to this method and create a new object of the same type and fill it afterwards
+                        DatabaseTableModel readDatabaseTableModel = requestedTableModel.getClass().getDeclaredConstructor().newInstance();
+                        readDatabaseTableModel.initWithResultSet(rs);
+                        databaseTableModelList.add(readDatabaseTableModel);
+                    }
+                    rs.close();
+                    statement.close();
+                    connection.close();
+                    break;
+                } catch (SQLException e) {
+                    logger.error(String.format("BenchmarkDAO.getForeignObjectsByObjectPrimaryKeyFromDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n", requestedTableModel.getClass(), e.getSQLState(), e.getCause(), e.getMessage()));
+                    if (RETRY_SQL_STATE.equals(e.getSQLState())) {
+                        // Since this is a transaction retry error, we
+                        // roll back the transaction and sleep a
+                        // little before trying again.  Each time
+                        // through the loop we sleep for a little
+                        // longer than the last time
+                        // (A.K.A. exponential backoff).
+                        logger.trace(String.format("retryable exception occurred:\n    sql state = [%s]\n    message = [%s]\n    retry counter = %s\n", e.getSQLState(), e.getMessage(), retryCount));
+                        connection.rollback();
+                        retryCount++;
+                        int sleepMillis = (int) (Math.pow(2, retryCount) * 100 + new Random().nextInt(100));
+                        System.out.printf("Hit 40001 transaction retry error, sleeping %s milliseconds\n", sleepMillis);
+                        try {
+                            Thread.sleep(sleepMillis);
+                        } catch (InterruptedException ignored) {
+                            // Necessary to allow the Thread.sleep()
+                            // above so the retry loop can continue.
+                        }
+                        if(retryCount > MAX_RETRY_COUNT) {
+                            logger.error("MAX_RETRY_COUNT arrived. It is no longer tried to execute this query: " + requestedTableModel.getBasicSQLSelfSelectString());
+                            return null;
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println(e.getClass().getName() + ": " + e.getMessage());
+                    System.exit(0);
                 }
-                rs.close();
-                statement.close();
-                connection.close();
-            } catch (Exception e) {
-                System.err.println(e.getClass().getName() + ": " + e.getMessage());
-                System.exit(0);
             }
         } catch (SQLException e) {
             System.out.printf("BenchmarkDAO.getForeignObjectsByObjectPrimaryKeyFromDB of instance %s ERROR: { state => %s, cause => %s, message => %s }\n",
@@ -332,32 +408,58 @@ class BenchmarkDAO {
         return databaseTableModelList;
     }
 
-    public List<? extends DatabaseTableModel> getAllOfObjectTypeFromDB(DatabaseTableModel databaseTableModel) {return getAllOfObjectTypeFromDB(databaseTableModel, "");}
 
     public boolean updateItemPriceToDB(Item item) {
         try (Connection connection = ds.getConnection()) {
-            try (PreparedStatement pstmt = connection.prepareStatement(String.format(Locale.US, "UPDATE item SET i_srp = %.2f, i_cost = %.2f WHERE i_id = '%s'", item.i_srp, item.i_cost, item.i_id))) {
+            int retryCount = 0;
+            while (retryCount <= MAX_RETRY_COUNT) {
+                try (PreparedStatement pstmt = connection.prepareStatement(String.format(Locale.US, "UPDATE item SET i_srp = %.2f, i_cost = %.2f WHERE i_id = '%s'", item.i_srp, item.i_cost, item.i_id))) {
 
-                sqlLog.add(pstmt.toString());
-                logger.trace(pstmt.toString());
+                    sqlLog.add(pstmt.toString());
+                    logger.trace(pstmt.toString());
 
 
-                Date now = new Date(System.currentTimeMillis());
-                String timestampBeforeCommit = sdf.format(now);
+                    Date now = new Date(System.currentTimeMillis());
+                    String timestampBeforeCommit = sdf.format(now);
 
-                pstmt.execute();
+                    pstmt.execute();
 
-                now = new Date(System.currentTimeMillis());
-                String timestampAfterCommit = sdf.format(now);
+                    now = new Date(System.currentTimeMillis());
+                    String timestampAfterCommit = sdf.format(now);
 
-                workloadQueryController.add(pstmt.toString(), timestampBeforeCommit, timestampAfterCommit);
+                    workloadQueryController.add(pstmt.toString(), timestampBeforeCommit, timestampAfterCommit);
 
-                pstmt.close();
-                connection.close();
-            } catch (SQLException e) {
-                System.out.printf("BenchmarkDAO.updateItemPriceToDB ERROR: { state => %s, cause => %s, message => %s }\n",
-                        e.getSQLState(), e.getCause(), e.getMessage());
-                return false;
+                    pstmt.close();
+                    connection.close();
+                    break;
+                } catch (SQLException e) {
+                    logger.error(String.format("BenchmarkDAO.updateItemPriceToDB ERROR: { state => %s, cause => %s, message => %s }\n", e.getSQLState(), e.getCause(), e.getMessage()));
+                    if (RETRY_SQL_STATE.equals(e.getSQLState())) {
+                        // Since this is a transaction retry error, we
+                        // roll back the transaction and sleep a
+                        // little before trying again.  Each time
+                        // through the loop we sleep for a little
+                        // longer than the last time
+                        // (A.K.A. exponential backoff).
+                        logger.trace(String.format("retryable exception occurred:\n    sql state = [%s]\n    message = [%s]\n    retry counter = %s\n", e.getSQLState(), e.getMessage(), retryCount));
+                        connection.rollback();
+                        retryCount++;
+                        int sleepMillis = (int) (Math.pow(2, retryCount) * 100 + new Random().nextInt(100));
+                        System.out.printf("Hit 40001 transaction retry error, sleeping %s milliseconds\n", sleepMillis);
+                        try {
+                            Thread.sleep(sleepMillis);
+                        } catch (InterruptedException ignored) {
+                            // Necessary to allow the Thread.sleep()
+                            // above so the retry loop can continue.
+                        }
+                        if(retryCount > MAX_RETRY_COUNT) {
+                            return false;
+                        }
+                    }
+                    else {
+                        break;
+                    }
+                }
             }
         } catch (SQLException e) {
             System.out.printf("BenchmarkDAO.updateItemPriceToDB ERROR: { state => %s, cause => %s, message => %s }\n",
@@ -370,34 +472,63 @@ class BenchmarkDAO {
     public List<Customer> getAllCustomersWithOpenOrders() {
         List<Customer> customerList = new ArrayList<>();
         try (Connection connection = ds.getConnection()) {
+            int retryCount = 0;
+            while (retryCount <= MAX_RETRY_COUNT) {
+                String sqlStatement = "";
+                try {
+                    Statement statement = connection.createStatement();
+                    sqlStatement = String.format("SELECT * FROM customer INNER JOIN orders ON customer.c_id = orders.c_id AND orders.o_status = 'OPEN'");
+                    sqlLog.add(sqlStatement);
+                    logger.trace(sqlStatement);
 
-            try {
-                Statement statement = connection.createStatement();
-                String sqlStatement = String.format("SELECT * FROM customer INNER JOIN orders ON customer.c_id = orders.c_id AND orders.o_status = 'OPEN'");
-                sqlLog.add(sqlStatement);
-                logger.trace(sqlStatement);
+                    Date now = new Date(System.currentTimeMillis());
+                    String timestampBeforeCommit = sdf.format(now);
 
-                Date now = new Date(System.currentTimeMillis());
-                String timestampBeforeCommit = sdf.format(now);
+                    ResultSet rs = statement.executeQuery(sqlStatement);
 
-                ResultSet rs = statement.executeQuery(sqlStatement);
+                    now = new Date(System.currentTimeMillis());
+                    String timestampAfterCommit = sdf.format(now);
 
-                now = new Date(System.currentTimeMillis());
-                String timestampAfterCommit = sdf.format(now);
+                    workloadQueryController.add(sqlStatement, timestampBeforeCommit, timestampAfterCommit);
 
-                workloadQueryController.add(sqlStatement, timestampBeforeCommit, timestampAfterCommit);
-
-                while (rs.next()) {
-                    Customer customer = new Customer();
-                    customer.initWithResultSet(rs);
-                    customerList.add(customer);
+                    while (rs.next()) {
+                        Customer customer = new Customer();
+                        customer.initWithResultSet(rs);
+                        customerList.add(customer);
+                    }
+                    rs.close();
+                    statement.close();
+                    connection.close();
+                    break;
+                } catch (SQLException e) {
+                    logger.error(String.format("BenchmarkDAO.getAllCustomersWithOpenOrders of instance %s ERROR: { state => %s, cause => %s, message => %s }\n", e.getSQLState(), e.getCause(), e.getMessage()));
+                    if (RETRY_SQL_STATE.equals(e.getSQLState())) {
+                        // Since this is a transaction retry error, we
+                        // roll back the transaction and sleep a
+                        // little before trying again.  Each time
+                        // through the loop we sleep for a little
+                        // longer than the last time
+                        // (A.K.A. exponential backoff).
+                        logger.trace(String.format("retryable exception occurred:\n    sql state = [%s]\n    message = [%s]\n    retry counter = %s\n", e.getSQLState(), e.getMessage(), retryCount));
+                        connection.rollback();
+                        retryCount++;
+                        int sleepMillis = (int) (Math.pow(2, retryCount) * 100 + new Random().nextInt(100));
+                        System.out.printf("Hit 40001 transaction retry error, sleeping %s milliseconds\n", sleepMillis);
+                        try {
+                            Thread.sleep(sleepMillis);
+                        } catch (InterruptedException ignored) {
+                            // Necessary to allow the Thread.sleep()
+                            // above so the retry loop can continue.
+                        }
+                        if (retryCount > MAX_RETRY_COUNT) {
+                            logger.error("MAX_RETRY_COUNT arrived. It is no longer tried to execute this query: " + sqlStatement);
+                            return null;
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println(e.getClass().getName() + ": " + e.getMessage());
+                    System.exit(0);
                 }
-                rs.close();
-                statement.close();
-                connection.close();
-            } catch (Exception e) {
-                System.err.println(e.getClass().getName() + ": " + e.getMessage());
-                System.exit(0);
             }
         } catch (SQLException e) {
             System.out.printf("BenchmarkDAO.getAllCustomersWithOpenOrders ERROR: { state => %s, cause => %s, message => %s }\n",
@@ -409,6 +540,8 @@ class BenchmarkDAO {
     /*
             start of wrappers
      */
+
+    public List<? extends DatabaseTableModel> getAllOfObjectTypeFromDB(DatabaseTableModel databaseTableModel) {return getAllOfObjectTypeFromDB(databaseTableModel, "");}
 
     public boolean bulkInsertCustomersToDB(List<Customer> customerList) {
         return bulkInsertObjectsToDB(customerList);

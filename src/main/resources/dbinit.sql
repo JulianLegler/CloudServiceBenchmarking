@@ -1,6 +1,5 @@
 SET sql_safe_updates = FALSE;
 SET timezone = "UTC";
-SET default_transaction_read_only = TRUE;
 
 USE defaultdb;
 DROP DATABASE IF EXISTS tpc_w_light CASCADE;
@@ -59,3 +58,12 @@ CREATE TABLE order_line (
   ol_discount FLOAT,
   ol_status VARCHAR(16)
 );
+
+CREATE INDEX order_line_idx_o_id ON order_line (o_id);
+CREATE INDEX order_line_idx_i_id ON order_line (i_id);
+CREATE INDEX orders_idx_c_id ON orders (c_id);
+CREATE INDEX item_idx_i_title ON item (i_title);
+
+
+SET default_transaction_read_only = TRUE;
+SET CLUSTER SETTING kv.range_split.load_qps_threshold = 20;

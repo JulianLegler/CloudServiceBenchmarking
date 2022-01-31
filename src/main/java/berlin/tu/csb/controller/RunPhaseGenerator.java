@@ -136,7 +136,7 @@ public class RunPhaseGenerator implements Runnable {
         @Override
         public void run() {
             List<OrderLine> orderLineList = persistenceController.databaseController.getOrderLinesOfOrder(persistenceController.stateController.getRandomOrder());
-            logger.info("Requested list of all orderslines for a random order and retrieved " +  orderLineList.size() + " orders from the DB.");
+            logger.info("Requested list of all orderslines for the a random order " + orderLineList.get(0).o_id + " and retrieved " +  orderLineList.size() + " orders from the DB.");
         }
     }
 
