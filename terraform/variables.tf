@@ -4,14 +4,14 @@ variable "gcp_project_id" {}
 variable "gcp_account_email" {}
 variable "gcp_region" { default = "europe-west3" }
 #variable "gcp_availability_zones" { default = ["europe-west3-a", "europe-west3-b", "europe-west3-c"] } # 3 suts
-variable "gcp_availability_zones" { default = ["europe-west3-a", "europe-west3-b", "europe-west3-c", "europe-west3-a", "europe-west3-b", "europe-west3-c"] } # 6 suts
+variable "gcp_availability_zones" { default = ["europe-west3-a", "europe-west3-b", "europe-west3-c", "europe-west3-a", "europe-west3-b", "europe-west3-c", "europe-west3-a", "europe-west3-b", "europe-west3-c"] } # 6 suts
 
 
 // Deployment variables
 variable "instances" { default = "6" }
 variable "prefix" { default = "csb" }
 variable "gcp_machine_type_bench" { default = "e2-standard-2" } // use e2-standard-2 // e2-micro
-variable "gcp_machine_type_sut" { default = "n2-standard-2" } // 3 suts = n2-standard-4 // 6 suts = n2-standard-2
+variable "gcp_machine_type_sut" { default = "n2-standard-4" } // 3 suts = n2-standard-4 // 6 suts = n2-standard-2
 
 variable "path_private_key" {  }
 variable "path_public_key" {  }
