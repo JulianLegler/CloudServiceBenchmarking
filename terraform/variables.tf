@@ -3,8 +3,7 @@ variable "gcp_service_account_path" {}
 variable "gcp_project_id" {}
 variable "gcp_account_email" {}
 variable "gcp_region" { default = "europe-west3" }
-#variable "gcp_availability_zones" { default = ["europe-west3-a", "europe-west3-b", "europe-west3-c"] } # 3 suts
-variable "gcp_availability_zones" { default = ["europe-west3-a", "europe-west3-b", "europe-west3-c", "europe-west3-a", "europe-west3-b", "europe-west3-c", "europe-west3-a", "europe-west3-b", "europe-west3-c"] } # 6 suts
+variable "gcp_availability_zones" { default = ["europe-west3-a", "europe-west3-b", "europe-west3-c", "europe-west3-a", "europe-west3-b", "europe-west3-c", "europe-west3-a", "europe-west3-b", "europe-west3-c"] } # up to 9 suts
 
 
 // Deployment variables

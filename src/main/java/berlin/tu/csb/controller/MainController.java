@@ -38,7 +38,7 @@ public class MainController {
         System.out.println("Present Project Directory : "+ System.getProperty("user.dir"));
 
 
-        if(args[0] != null && args[0].equals("run")) {
+        if(args.length > 0 && args[0] != null && args[0].equals("run")) {
             if(args.length != 5) {
                 System.out.println("Number of run arguments are not correct. Fallback to local execution mode.");
                 System.out.printf("Correct usage of parameters:%n 1 - run %n 2 - server adress%n 3 - seed for pseudo generator as long%n 4 - run time of benchmark in minutes%n 5 - amount of threads to run%n");
@@ -57,7 +57,7 @@ public class MainController {
                 threadCount = Integer.parseInt(args[4]);
             }
         }
-        else if (args[0] != null && args[0].equals("load")) {
+        else if (args.length > 0 && args[0] != null && args[0].equals("load")) {
             runOrLoad = "load";
             if(args.length != 6) {
                 System.out.println("Number of run arguments are not correct. Fallback to local execution mode.");
@@ -77,6 +77,15 @@ public class MainController {
                 dbCustomerInsertsLoadPhase = Integer.parseInt(args[3]);
                 dbItemInsertsLoadPhase = Integer.parseInt(args[4]);
                 threadCount = Integer.parseInt(args[5]);
+            }
+        } else {
+            try {
+                String content = new String(Files.readAllBytes(Paths.get(System.getProperty("user.dir")+"\\terraform\\public_ip.csv")));
+                serverAddresses = content.split(",");
+            } catch (IOException e) {
+                System.out.println("public_ip.csv not present. Are the servers set up correctly?");
+                e.printStackTrace();
+                System.exit(1);
             }
         }
 
