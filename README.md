@@ -33,3 +33,19 @@ In generel, there should be not further interefence needed to run this benchmark
 The result files exceeds the normal size limitations and therefore [uploaded to our university file storage](https://tubcloud.tu-berlin.de/s/tsQqNQkgqyWppgp).
 
 TLDR: For my choosen use case the system is not scaling at all. Reasons for this lie in serveral aspects. The most prominent one could be, that the choosen database schema turned out to be not suitable for the way CockroachDB is distributing the data internally. Therefore leading to a single hot node which daramatically impacts the performance of the entire cluster.
+
+## Recordings
+### Deployment with Terraform
+[![asciicast](https://asciinema.org/a/RnLCM0tV2IqH2fnlAv6VqKOvR.svg)](https://asciinema.org/a/RnLCM0tV2IqH2fnlAv6VqKOvR)
+
+### Load Phase - Inserting Data into the SUT
+[![asciicast](https://asciinema.org/a/dLFGzF2E7ngDu2a4ZJP7YSqxY.svg)](https://asciinema.org/a/dLFGzF2E7ngDu2a4ZJP7YSqxY)
+
+### Run Phase - running the actual benchmark against the SUT (shortened from 30min to ~4min)
+[![asciicast](https://asciinema.org/a/vZCxgFZEpks5r5ReuD6xdp9u5.svg)](https://asciinema.org/a/vZCxgFZEpks5r5ReuD6xdp9u5)
+
+### Extraction Phase - fetch raw log data from remote servers to local machine
+[![asciicast](https://asciinema.org/a/t9ZHlDaphqInd3c5HOQpDTajV.svg)](https://asciinema.org/a/t9ZHlDaphqInd3c5HOQpDTajV)
+
+### Teardown Phase - destroy infrastructure with Terraform
+[![asciicast](https://asciinema.org/a/angmZHVmtukGfBxJHhAMOBUft.svg)](https://asciinema.org/a/angmZHVmtukGfBxJHhAMOBUft)
